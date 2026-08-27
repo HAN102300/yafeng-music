@@ -116,7 +116,7 @@ export default function MusicTopPage() {
                 </div>
 
                 {/* 时长 */}
-                <span className="text-sm text-white/40 hidden md:block w-10 text-right">{item.duration}</span>
+                <span className="text-sm text-white/40 hidden md:block w-10 text-right">{item.durationLabel}</span>
 
                 {/* 播放图标 */}
                 <div className="w-8 flex items-center justify-center">

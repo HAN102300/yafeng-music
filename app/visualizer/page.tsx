@@ -174,7 +174,7 @@ export default function VisualizerPage() {
           </div>
 
           {/* 歌词同步 */}
-          <LyricsPanel lyricUrl={currentSong?.lyricUrl} className="mt-4" />
+          <LyricsPanel lyricUrl={currentSong?.lyricUrl} neteaseId={currentSong?.neteaseId} className="mt-4" />
 
           {/* BPM 显示 */}
           {bpm > 0 && (

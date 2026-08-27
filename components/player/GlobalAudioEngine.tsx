@@ -15,6 +15,7 @@ import { useMusicStore } from '@/lib/store';
 import { audioEngine } from '@/lib/audio/engine';
 import { subscribeFrame } from '@/lib/audio/frameScheduler';
 import { calculateTheme, applyThemeToDOM } from '@/lib/themeEngine';
+import { resolveTrackSrc } from '@/lib/onlineSource';
 
 export default function GlobalAudioEngine() {
   const currentSong = useMusicStore((s) => s.currentSong);
@@ -23,6 +24,9 @@ export default function GlobalAudioEngine() {
 
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+
+  // 已加载歌曲 id，避免同一首歌重复设置 src
+  const loadedIdRef = useRef<number | null>(null);
 
   // 尝试播放（建立分析链 + 恢复上下文）
   const tryPlay = () => {
@@ -39,19 +43,30 @@ export default function GlobalAudioEngine() {
     });
   };
 
-  // 歌曲切换：加载新音频源
+  // 歌曲切换：解析播放源（本地 / 在线）并加载
   useEffect(() => {
     const audio = audioEngine.getAudio();
     if (!audio || !currentSong) return;
+    let cancelled = false;
 
-    const targetSrc = encodeURI(currentSong.audio);
-    if (!audio.src || !audio.src.endsWith(targetSrc)) {
-      audio.src = currentSong.audio;
-      audio.load();
-      if (isPlayingRef.current) {
-        tryPlay();
+    (async () => {
+      try {
+        const src = await resolveTrackSrc(currentSong);
+        if (cancelled || !audio) return;
+        if (loadedIdRef.current === currentSong.id) return;
+
+        loadedIdRef.current = currentSong.id;
+        audio.src = src;
+        audio.load();
+        if (isPlayingRef.current) tryPlay();
+      } catch (err) {
+        console.error('[GlobalAudioEngine] 播放源解析失败:', err);
       }
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentSong?.id]);
 
   // 播放/暂停

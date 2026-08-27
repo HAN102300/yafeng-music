@@ -1,4 +1,4 @@
-// 歌曲数据 - 匹配实际媒体文件和图片
+﻿// 歌曲数据 - 匹配实际媒体文件和图片
 // 统一音轨类型（合并自旧版 Song / MusicTrack）
 export interface Track {
   id: number;
@@ -8,6 +8,12 @@ export interface Track {
   audio: string;
   /** LRC 歌词文件地址（public/lyrics/*.lrc） */
   lyricUrl?: string;
+  /** 网易云在线歌曲 id（有值即在线歌，audio 为空，由引擎动态解析播放源） */
+  neteaseId?: number;
+  /** 时长（毫秒） */
+  duration?: number;
+  /** 版权标记：>0 为 VIP / 仅试听 */
+  fee?: number;
 }
 
 // 兼容别名：旧代码中的 Song 即 Track
@@ -28,7 +34,7 @@ export interface Playlist {
 }
 
 export interface RankSong extends Track {
-  duration: string;
+  durationLabel: string;
   rank: number;
 }
 
@@ -144,17 +150,17 @@ export const playlists: Playlist[] = [
 // 注意：id 9-13 为演示条目，复用已有音频文件，不在默认播放列表 songs 中；
 // 播放时应通过 playQueueFrom(rankSongs, index) 整列入队，避免 next() 查找不到当前歌曲
 export const rankSongs: RankSong[] = [
-  { id: 1, title: '泡沫', artist: '邓紫棋', cover: '/images/泡沫.png', audio: '/media/泡沫.mp3', duration: '4:18', rank: 1 },
-  { id: 2, title: '小城夏天', artist: '苏星婕', cover: '/images/小城夏天.png', audio: '/media/小城夏天.mp3', duration: '3:45', rank: 2 },
-  { id: 3, title: 'Bezos', artist: 'Maroon5', cover: '/images/Bezos.png', audio: '/media/bezos.mp3', duration: '3:30', rank: 3 },
-  { id: 4, title: 'cool kids', artist: '告五人', cover: '/images/cool kids.png', audio: '/media/cool kids.mp3', duration: '3:55', rank: 4 },
-  { id: 5, title: 'infinity', artist: '飞儿乐队', cover: '/images/infinity.png', audio: '/media/infinity.mp3', duration: '4:02', rank: 5 },
-  { id: 6, title: 'PYRO', artist: 'Chester Young、Castion', cover: '/images/Pyro.png', audio: '/media/PYRO-Chester Young、Castion.mp3', duration: '3:20', rank: 6 },
-  { id: 7, title: 'Thunder', artist: 'Imagine Dragons、Khalid', cover: '/images/Thunder.png', audio: '/media/Thunder _ Young Dumb & Broke (Medley)-Imagine Dragons、Khalid.mp3', duration: '3:40', rank: 7 },
-  { id: 8, title: 'I Really Want to Stay At Your House', artist: 'Rosa Walton、Hallie Coggins', cover: '/images/赛博朋克.png', audio: '/media/I Really Want to Stay At Your House-Rosa Walton、Hallie Coggins.mp3', duration: '3:15', rank: 8 },
-  { id: 9, title: '光年之外', artist: '邓紫棋', cover: '/images/邓紫棋.jpg', audio: '/media/泡沫.mp3', duration: '4:10', rank: 9 },
-  { id: 10, title: '告白气球', artist: '周杰伦', cover: '/images/周杰伦.webp', audio: '/media/infinity.mp3', duration: '3:35', rank: 10 },
-  { id: 11, title: '演员', artist: '薛之谦', cover: '/images/薛之谦.webp', audio: '/media/cool kids.mp3', duration: '4:20', rank: 11 },
-  { id: 12, title: '起风了', artist: '买辣椒也用券', cover: '/images/林俊杰.jpg', audio: '/media/小城夏天.mp3', duration: '3:50', rank: 12 },
-  { id: 13, title: '孤勇者', artist: '陈奕迅', cover: '/images/陈奕迅.webp', audio: '/media/bezos.mp3', duration: '4:05', rank: 13 },
+  { id: 1, title: '泡沫', artist: '邓紫棋', cover: '/images/泡沫.png', audio: '/media/泡沫.mp3', durationLabel: '4:18', rank: 1 },
+  { id: 2, title: '小城夏天', artist: '苏星婕', cover: '/images/小城夏天.png', audio: '/media/小城夏天.mp3', durationLabel: '3:45', rank: 2 },
+  { id: 3, title: 'Bezos', artist: 'Maroon5', cover: '/images/Bezos.png', audio: '/media/bezos.mp3', durationLabel: '3:30', rank: 3 },
+  { id: 4, title: 'cool kids', artist: '告五人', cover: '/images/cool kids.png', audio: '/media/cool kids.mp3', durationLabel: '3:55', rank: 4 },
+  { id: 5, title: 'infinity', artist: '飞儿乐队', cover: '/images/infinity.png', audio: '/media/infinity.mp3', durationLabel: '4:02', rank: 5 },
+  { id: 6, title: 'PYRO', artist: 'Chester Young、Castion', cover: '/images/Pyro.png', audio: '/media/PYRO-Chester Young、Castion.mp3', durationLabel: '3:20', rank: 6 },
+  { id: 7, title: 'Thunder', artist: 'Imagine Dragons、Khalid', cover: '/images/Thunder.png', audio: '/media/Thunder _ Young Dumb & Broke (Medley)-Imagine Dragons、Khalid.mp3', durationLabel: '3:40', rank: 7 },
+  { id: 8, title: 'I Really Want to Stay At Your House', artist: 'Rosa Walton、Hallie Coggins', cover: '/images/赛博朋克.png', audio: '/media/I Really Want to Stay At Your House-Rosa Walton、Hallie Coggins.mp3', durationLabel: '3:15', rank: 8 },
+  { id: 9, title: '光年之外', artist: '邓紫棋', cover: '/images/邓紫棋.jpg', audio: '/media/泡沫.mp3', durationLabel: '4:10', rank: 9 },
+  { id: 10, title: '告白气球', artist: '周杰伦', cover: '/images/周杰伦.webp', audio: '/media/infinity.mp3', durationLabel: '3:35', rank: 10 },
+  { id: 11, title: '演员', artist: '薛之谦', cover: '/images/薛之谦.webp', audio: '/media/cool kids.mp3', durationLabel: '4:20', rank: 11 },
+  { id: 12, title: '起风了', artist: '买辣椒也用券', cover: '/images/林俊杰.jpg', audio: '/media/小城夏天.mp3', durationLabel: '3:50', rank: 12 },
+  { id: 13, title: '孤勇者', artist: '陈奕迅', cover: '/images/陈奕迅.webp', audio: '/media/bezos.mp3', durationLabel: '4:05', rank: 13 },
 ];
