@@ -125,7 +125,7 @@ export function CircularVisualizer({
     // 专辑封面（缓存图，节拍轻微缩放）
     const coverImg = coverImgRef.current;
     if (showCover && coverImg) {
-      const beatScale = 1 + frame.beat.phase * 0 + frame.bass * 0.06;
+      const beatScale = 1 + frame.bass * 0.06;
       const coverSize = innerRadius * 1.6 * beatScale;
       ctx.save();
       ctx.beginPath();

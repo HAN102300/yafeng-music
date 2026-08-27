@@ -20,8 +20,6 @@ interface MusicStore {
   volume: number;
 
   // UI 状态
-  isPlayerExpanded: boolean;
-  activeSection: string;
   visualizerSceneId: string;
 
   // 播放控制
@@ -35,12 +33,8 @@ interface MusicStore {
   setPlaylist: (list: Track[]) => void;
   /** 整列入队并从指定下标开始播放（排行榜/歌单场景） */
   playQueueFrom: (list: Track[], index: number) => void;
-  addToPlaylist: (song: Track) => void;
-  removeFromPlaylist: (songId: number) => void;
 
   // UI 控制
-  togglePlayerExpanded: () => void;
-  setActiveSection: (section: string) => void;
   setVisualizerScene: (id: string) => void;
 }
 
@@ -53,8 +47,6 @@ export const useMusicStore = create<MusicStore>()(
       playlist: songs,
       volume: 0.7,
 
-      isPlayerExpanded: false,
-      activeSection: 'home',
       visualizerSceneId: 'circular',
 
       // 播放控制
@@ -112,32 +104,6 @@ export const useMusicStore = create<MusicStore>()(
         const safeIndex = Math.max(0, Math.min(index, list.length - 1));
         set({ playlist: list, currentSong: list[safeIndex], isPlaying: true });
       },
-
-      addToPlaylist: (song: Track) => {
-        const { playlist } = get();
-        if (!playlist.find((s) => s.id === song.id)) {
-          set({ playlist: [...playlist, song] });
-        }
-      },
-
-      removeFromPlaylist: (songId: number) => {
-        const { playlist, currentSong } = get();
-        const newPlaylist = playlist.filter((s) => s.id !== songId);
-        set({ playlist: newPlaylist });
-
-        if (currentSong?.id === songId) {
-          if (newPlaylist.length > 0) {
-            set({ currentSong: newPlaylist[0], isPlaying: false });
-          } else {
-            set({ currentSong: null, isPlaying: false });
-          }
-        }
-      },
-
-      // UI 控制
-      togglePlayerExpanded: () => set({ isPlayerExpanded: !get().isPlayerExpanded }),
-
-      setActiveSection: (section: string) => set({ activeSection: section }),
 
       setVisualizerScene: (id: string) => set({ visualizerSceneId: id }),
     }),

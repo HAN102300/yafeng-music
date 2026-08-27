@@ -73,7 +73,9 @@ class AudioEngine {
     if (!audio) return;
 
     if (!this.ctx) {
-      const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctor: typeof AudioContext =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new Ctor();
       this.analyser = this.ctx!.createAnalyser();
       this.analyser.fftSize = 256;

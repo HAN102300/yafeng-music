@@ -7,7 +7,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMusicStore } from '@/lib/store';
 
 const navLinks = [
   { href: '/', label: '首页', icon: '🏠' },
@@ -20,7 +19,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const currentSong = useMusicStore((s) => s.currentSong);
 
   // 监听滚动
   useEffect(() => {
@@ -149,9 +147,6 @@ export default function Navbar() {
           </div>
         )}
       </nav>
-
-      {/* 底部播放栏时的间距调整 */}
-      {currentSong && <div className="h-0" />}
     </>
   );
 }
