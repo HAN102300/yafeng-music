@@ -67,6 +67,7 @@ export default function GlobalAudioEngine() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅在歌曲 id 变化时重新加载
   }, [currentSong?.id]);
 
   // 播放/暂停
@@ -79,6 +80,7 @@ export default function GlobalAudioEngine() {
     } else {
       audio.pause();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 依赖 isPlaying 与歌曲 id
   }, [isPlaying, currentSong?.id]);
 
   // 音量同步

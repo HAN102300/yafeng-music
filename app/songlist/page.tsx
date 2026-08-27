@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { playlists, songs } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
+import Image from 'next/image';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { GlowingButton } from '@/components/ui/aceternity/glowing-button';
 import SpotlightCard from '@/components/ui/reactbits/SpotlightCard';
@@ -101,10 +102,12 @@ export default function SongListPage() {
                   onClick={() => handlePlayPlaylist(playlist.id)}
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
-                    <img
+                    <Image
                       src={playlist.cover}
                       alt={playlist.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[10px] text-white/80 border border-white/10">

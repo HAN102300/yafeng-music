@@ -3,6 +3,7 @@ import './globals.css';
 import Navbar from '@/components/ui/Navbar';
 import PlayerBar from '@/components/ui/PlayerBar';
 import GlobalAudioEngine from '@/components/player/GlobalAudioEngine';
+import SmoothScroll from '@/components/animations/SmoothScroll';
 
 export const metadata: Metadata = {
   title: '雅枫音乐 - 聆听美好',
@@ -26,6 +27,9 @@ export default function RootLayout({
 
         {/* 全局音频引擎（无头，唯一音源） */}
         <GlobalAudioEngine />
+
+        {/* 丝滑滚动 */}
+        <SmoothScroll />
 
         {/* 导航栏 */}
         <Navbar />

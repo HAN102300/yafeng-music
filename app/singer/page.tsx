@@ -7,6 +7,7 @@
  */
 import { artists, songs } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
+import Image from 'next/image';
 import { Card3D } from '@/components/ui/aceternity/3d-card';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import ChromaGrid, { ChromaItem } from '@/components/ui/reactbits/ChromaGrid';
@@ -71,8 +72,8 @@ export default function SingerPage() {
               className="flex items-center gap-6 p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:border-pink-500/40 transition-colors"
               onClick={() => handleArtistClick({ image: featured.avatar, title: featured.name, subtitle: featured.genre })}
             >
-              <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500/60 shrink-0">
-                <img src={featured.avatar} alt={featured.name} className="w-full h-full object-cover" />
+              <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500/60 shrink-0 relative">
+                <Image src={featured.avatar} alt={featured.name} width={96} height={96} className="object-cover" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-widest text-pink-400/80 mb-1">本周焦点</p>

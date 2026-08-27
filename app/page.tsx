@@ -8,6 +8,7 @@
  */
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { songs, playlists, artists, Track } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
@@ -221,10 +222,12 @@ export default function HomePage() {
                   index === 0 || index === 3 ? 'md:col-span-2' : ''
                 }`}
               >
-                <img
+                <Image
                   src={playlist.cover}
                   alt={playlist.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -262,11 +265,13 @@ export default function HomePage() {
                 onClick={() => router.push('/singer')}
                 className="group flex flex-col items-center shrink-0 cursor-pointer"
               >
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-purple-400 transition-all">
-                  <img
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-purple-400 transition-all relative">
+                  <Image
                     src={artist.avatar}
                     alt={artist.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    width={80}
+                    height={80}
+                    className="object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
                 <p className="text-xs text-white/60 group-hover:text-white mt-2 transition-colors">

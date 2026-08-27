@@ -12,12 +12,16 @@ import { persist } from 'zustand/middleware';
 import { Track, songs } from './data';
 import { audioEngine } from './audio/engine';
 
+export type PlayMode = 'loop' | 'single' | 'random';
+
 interface MusicStore {
   // 播放状态（低频）
   currentSong: Track | null;
   isPlaying: boolean;
   playlist: Track[];
   volume: number;
+  playMode: PlayMode;
+  likedIds: number[];
 
   // UI 状态
   visualizerSceneId: string;
@@ -34,6 +38,11 @@ interface MusicStore {
   /** 整列入队并从指定下标开始播放（排行榜/歌单场景） */
   playQueueFrom: (list: Track[], index: number) => void;
 
+  // 播放模式 / 收藏
+  setPlayMode: (mode: PlayMode) => void;
+  toggleLike: (song: Track) => void;
+  isLiked: (songId: number) => boolean;
+
   // UI 控制
   setVisualizerScene: (id: string) => void;
 }
@@ -46,6 +55,8 @@ export const useMusicStore = create<MusicStore>()(
       isPlaying: false,
       playlist: songs,
       volume: 0.7,
+      playMode: 'loop',
+      likedIds: [],
 
       visualizerSceneId: 'circular',
 
@@ -68,8 +79,14 @@ export const useMusicStore = create<MusicStore>()(
       },
 
       next: () => {
-        const { playlist, currentSong } = get();
+        const { playlist, currentSong, playMode } = get();
         if (playlist.length === 0) return;
+
+        if (playMode === 'random') {
+          const randomIndex = Math.floor(Math.random() * playlist.length);
+          set({ currentSong: playlist[randomIndex], isPlaying: true });
+          return;
+        }
 
         const currentIndex = currentSong
           ? playlist.findIndex((s) => s.id === currentSong.id)
@@ -80,8 +97,14 @@ export const useMusicStore = create<MusicStore>()(
       },
 
       prev: () => {
-        const { playlist, currentSong } = get();
+        const { playlist, currentSong, playMode } = get();
         if (playlist.length === 0) return;
+
+        if (playMode === 'random') {
+          const randomIndex = Math.floor(Math.random() * playlist.length);
+          set({ currentSong: playlist[randomIndex], isPlaying: true });
+          return;
+        }
 
         const currentIndex = currentSong
           ? playlist.findIndex((s) => s.id === currentSong.id)
@@ -105,6 +128,19 @@ export const useMusicStore = create<MusicStore>()(
         set({ playlist: list, currentSong: list[safeIndex], isPlaying: true });
       },
 
+      setPlayMode: (mode: PlayMode) => set({ playMode: mode }),
+
+      toggleLike: (song: Track) => {
+        set((state) => {
+          const set = new Set(state.likedIds);
+          if (set.has(song.id)) set.delete(song.id);
+          else set.add(song.id);
+          return { likedIds: Array.from(set) };
+        });
+      },
+
+      isLiked: (songId: number) => get().likedIds.includes(songId),
+
       setVisualizerScene: (id: string) => set({ visualizerSceneId: id }),
     }),
     {
@@ -115,6 +151,8 @@ export const useMusicStore = create<MusicStore>()(
         playlist: state.playlist,
         volume: state.volume,
         visualizerSceneId: state.visualizerSceneId,
+        playMode: state.playMode,
+        likedIds: state.likedIds,
       }),
     }
   )

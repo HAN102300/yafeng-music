@@ -6,6 +6,7 @@
  */
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { searchSongs, toTrack } from '@/lib/api';
 import type { NetEaseSong } from '@/lib/server/netEase';
@@ -164,8 +165,8 @@ function SearchContent() {
                     )}
                   </span>
 
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
-                    <img src={song.cover} alt={song.name} className="w-full h-full object-cover" loading="lazy" />
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 relative">
+                    <Image src={song.cover} alt={song.name} width={48} height={48} className="object-cover" />
                   </div>
 
                   <div className="min-w-0 flex-1">

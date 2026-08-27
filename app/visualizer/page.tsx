@@ -12,8 +12,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { songs } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
-import { audioEngine } from '@/lib/audio/engine';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
+import { useAudioProgress } from '@/hooks/useAudioProgress';
+import { useDragPercent } from '@/hooks/useDragPercent';
 import { useQualityTier } from '@/hooks/useQualityTier';
 import { SCENES } from '@/lib/visualizer/registry';
 import { SceneManager } from '@/components/visualizer/SceneManager';
@@ -29,7 +30,6 @@ export default function VisualizerPage() {
   const togglePlay = useMusicStore((s) => s.togglePlay);
   const next = useMusicStore((s) => s.next);
   const prev = useMusicStore((s) => s.prev);
-  const seekTo = useMusicStore((s) => s.seekTo);
   const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
   const sceneId = useMusicStore((s) => s.visualizerSceneId);
   const setScene = useMusicStore((s) => s.setVisualizerScene);
@@ -37,30 +37,10 @@ export default function VisualizerPage() {
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // 高频显示状态：本页局部（timeupdate ~4Hz）
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  useEffect(() => {
-    const audio = audioEngine.getAudio();
-    if (!audio) return;
-
-    const handleTime = () => setCurrentTime(audio.currentTime);
-    const handleDuration = () => {
-      if (isFinite(audio.duration)) setDuration(audio.duration);
-    };
-    handleTime();
-    handleDuration();
-
-    audio.addEventListener('timeupdate', handleTime);
-    audio.addEventListener('loadedmetadata', handleDuration);
-    audio.addEventListener('durationchange', handleDuration);
-    return () => {
-      audio.removeEventListener('timeupdate', handleTime);
-      audio.removeEventListener('loadedmetadata', handleDuration);
-      audio.removeEventListener('durationchange', handleDuration);
-    };
-  }, []);
+  // 高频进度：本地 state
+  const { currentTime, duration, seekTo } = useAudioProgress();
+  const progressDrag = useDragPercent((pct) => seekTo(pct * duration));
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // BPM（2s 节流入 state）与节拍脉冲（直接操作 DOM，0 重渲染）
   const [bpm, setBpm] = useState(0);
@@ -123,7 +103,7 @@ export default function VisualizerPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const { containerRef: progressContainerRef, isDragging: isProgressDragging } = progressDrag;
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#0a0a1a]" onMouseMove={handleMouseMove}>
@@ -212,24 +192,20 @@ export default function VisualizerPage() {
                 {/* 进度条 */}
                 <div className="mb-4">
                   <div
-                    className="w-full h-1.5 bg-white/10 rounded-full cursor-pointer relative group"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const time = ((e.clientX - rect.left) / rect.width) * duration;
-                      seekTo(time);
-                      setCurrentTime(time);
-                    }}
+                    ref={progressContainerRef}
+                    className="w-full h-1.5 bg-white/10 rounded-full cursor-pointer relative group select-none touch-none"
+                    {...progressDrag.start}
                   >
                     <div
                       className="h-full rounded-full relative"
                       style={{
-                        width: `${progressPercent}%`,
+                        width: `${isProgressDragging ? progressDrag.percent * 100 : progressPercent}%`,
                         background:
                           'linear-gradient(90deg, var(--color-primary, #a855f7), var(--color-accent, #06b6d4))',
                       }}
                     >
                       <div
-                        className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full opacity-100 transition-opacity bg-white"
                         style={{ boxShadow: 'var(--glow-primary, 0 0 10px rgba(168,85,247,0.4))' }}
                       />
                     </div>

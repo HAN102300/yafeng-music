@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { getSession } from '@/lib/auth';
 
 const navLinks = [
   { href: '/', label: '首页', icon: '🏠' },
@@ -21,6 +22,15 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [session, setSession] = useState<string | null>(null);
+
+  // 监听登录会话（客户端）
+  useEffect(() => {
+    setSession(getSession());
+    const onStorage = () => setSession(getSession());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // 监听滚动
   useEffect(() => {
@@ -110,11 +120,26 @@ export default function Navbar() {
           {/* 用户区域 */}
           <div className="flex items-center gap-3">
             <Link
-              href="/login"
-              className="px-4 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+              href="/likes"
+              className="hidden md:flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
             >
-              登录
+              <span>💗</span> 喜欢
             </Link>
+            {session ? (
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-xl text-sm font-medium glass-panel text-white hover:bg-white/10 transition-colors"
+              >
+                {session}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+              >
+                登录
+              </Link>
+            )}
 
             {/* 移动端菜单按钮 */}
             <button
@@ -163,6 +188,14 @@ export default function Navbar() {
             >
               <span className="mr-2">🔍</span>
               搜索
+            </Link>
+            <Link
+              href="/likes"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-3 rounded-xl text-sm font-medium mb-1 text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200"
+            >
+              <span className="mr-2">💗</span>
+              我的喜欢
             </Link>
           </div>
         )}

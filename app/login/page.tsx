@@ -1,31 +1,54 @@
 'use client';
 
 /**
- * 登录页（颠覆性重构版）
+ * 登录页（本地账号系统）
  * React Bits Iridescence(ogl) 全屏幻彩背景 + ShinyText 标题
- * 表单保持 glass-panel 风格
+ * 账号基于 localStorage，注册/登录真实生效，登录后跳转首页。
  */
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ShinyText from '@/components/ui/reactbits/ShinyText';
 import { useQualityTier } from '@/hooks/useQualityTier';
+import { login, register, logout, getSession } from '@/lib/auth';
 
 // ogl WebGL 背景：懒加载 + 禁 SSR
 const Iridescence = dynamic(() => import('@/components/ui/reactbits/Iridescence'), { ssr: false });
 
 export default function LoginPage() {
   const quality = useQualityTier();
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const session = getSession();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // 模拟登录/注册
-    alert(isLogin ? '登录功能开发中...' : '注册功能开发中...');
+    setError('');
+
+    if (!isLogin && password !== confirmPassword) {
+      setError('两次输入的密码不一致');
+      return;
+    }
+
+    const result = isLogin ? login(username, password) : register(username, password);
+    if (!result.ok) {
+      setError(result.error ?? '操作失败');
+      return;
+    }
+
+    router.push('/');
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
   };
 
   return (
@@ -57,14 +80,14 @@ export default function LoginPage() {
               雅
             </motion.div>
             <ShinyText
-              text={isLogin ? '欢迎回来' : '加入雅枫'}
+              text={session ? `欢迎，${session}` : isLogin ? '欢迎回来' : '加入雅枫'}
               speed={2.5}
               className="text-3xl font-bold"
               shineColor="#ffffff"
               color="#c4b5fd"
             />
             <p className="text-white/50 mt-2">
-              {isLogin ? '登录你的雅枫音乐账号' : '创建账号，开启音乐之旅'}
+              {session ? '你已登录' : isLogin ? '登录你的雅枫音乐账号' : '创建账号，开启音乐之旅'}
             </p>
           </div>
         </motion.div>
@@ -81,7 +104,10 @@ export default function LoginPage() {
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   isLogin ? 'bg-white/10 text-white' : 'text-white/50'
                 }`}
-                onClick={() => setIsLogin(true)}
+                onClick={() => {
+                  setIsLogin(true);
+                  setError('');
+                }}
               >
                 登录
               </button>
@@ -89,7 +115,10 @@ export default function LoginPage() {
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                   !isLogin ? 'bg-white/10 text-white' : 'text-white/50'
                 }`}
-                onClick={() => setIsLogin(false)}
+                onClick={() => {
+                  setIsLogin(false);
+                  setError('');
+                }}
               >
                 注册
               </button>
@@ -98,12 +127,13 @@ export default function LoginPage() {
             {/* 表单 */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-white/60 mb-2">邮箱</label>
+                <label className="block text-sm text-white/60 mb-2">用户名</label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="请输入邮箱"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="请输入用户名"
+                  autoComplete="username"
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-purple-400/50 focus:shadow-[0_0_20px_rgba(168,85,247,0.15)] outline-none transition-all"
                 />
               </div>
@@ -115,6 +145,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入密码"
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-purple-400/50 focus:shadow-[0_0_20px_rgba(168,85,247,0.15)] outline-none transition-all"
                 />
               </div>
@@ -127,17 +158,16 @@ export default function LoginPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="请再次输入密码"
+                    autoComplete="new-password"
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-purple-400/50 focus:shadow-[0_0_20px_rgba(168,85,247,0.15)] outline-none transition-all"
                   />
                 </div>
               )}
 
-              {isLogin && (
-                <div className="flex justify-end">
-                  <button type="button" className="text-sm text-white/50 hover:text-white transition-colors">
-                    忘记密码？
-                  </button>
-                </div>
+              {error && (
+                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
               )}
 
               <motion.button
@@ -150,6 +180,24 @@ export default function LoginPage() {
               </motion.button>
             </form>
 
+            {/* 会话操作 */}
+            {session && (
+              <div className="flex items-center justify-between mt-6">
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-sm text-white/60 hover:text-white transition-colors"
+                >
+                  → 进入首页
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                >
+                  退出登录
+                </button>
+              </div>
+            )}
+
             {/* 分割线 */}
             <div className="flex items-center gap-4 my-6">
               <div className="flex-1 h-px bg-white/10" />
@@ -157,12 +205,18 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* 第三方登录 */}
+            {/* 第三方登录（占位） */}
             <div className="space-y-3">
-              <button className="w-full py-3 rounded-xl glass-panel text-white text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+              <button
+                onClick={() => setError('第三方登录暂未接入')}
+                className="w-full py-3 rounded-xl glass-panel text-white text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+              >
                 <span>🍎</span> 使用 Apple 登录
               </button>
-              <button className="w-full py-3 rounded-xl glass-panel text-white text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+              <button
+                onClick={() => setError('第三方登录暂未接入')}
+                className="w-full py-3 rounded-xl glass-panel text-white text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+              >
                 <span>💬</span> 使用微信登录
               </button>
             </div>

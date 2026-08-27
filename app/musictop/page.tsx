@@ -7,6 +7,7 @@
  */
 import { rankSongs, RankSong } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
+import Image from 'next/image';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import AnimatedList from '@/components/ui/reactbits/AnimatedList';
 import CountUp from '@/components/ui/reactbits/CountUp';
@@ -79,10 +80,12 @@ export default function MusicTopPage() {
 
                 {/* 封面 */}
                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 relative">
-                  <img
+                  <Image
                     src={item.cover}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    width={48}
+                    height={48}
+                    className="object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   {isCurrentSong && isPlaying && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
