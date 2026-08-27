@@ -25,6 +25,7 @@ const eslintConfig = [
     files: ['components/ui/reactbits/**', 'components/ui/aceternity/**'],
     rules: {
       'prefer-const': 'off',
+      '@next/next/no-img-element': 'off',
     },
   },
 ];

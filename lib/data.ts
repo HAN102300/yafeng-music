@@ -136,7 +136,7 @@ export const playlists: Playlist[] = [
   { id: 2, name: '国外热曲', cover: '/images/2国外热曲.png', count: 80 },
   { id: 3, name: '温柔故乡', cover: '/images/3温柔故乡.png', count: 45 },
   { id: 4, name: '战斗燃起来了', cover: '/images/4战斗燃起来了.png', count: 60 },
-  { id: 5, name: '全名翻唱', cover: '/images/5全名翻唱.png', count: 70 },
+  { id: 5, name: '全民翻唱', cover: '/images/5全名翻唱.png', count: 70 },
   { id: 6, name: '海岸边', cover: '/images/6海岸边.png', count: 35 },
   { id: 7, name: '经典老歌', cover: '/images/7经典老歌.png', count: 90 },
   { id: 8, name: '上路DJ', cover: '/images/8上路DJ.png', count: 55 },
@@ -147,7 +147,7 @@ export const playlists: Playlist[] = [
 ];
 
 // 排行榜数据
-// 注意：id 9-13 为演示条目，复用已有音频文件，不在默认播放列表 songs 中；
+// id 9-13 为在线歌曲（neteaseId 指向网易云真实曲目，封面/时长与曲目匹配）。
 // 播放时应通过 playQueueFrom(rankSongs, index) 整列入队，避免 next() 查找不到当前歌曲
 export const rankSongs: RankSong[] = [
   { id: 1, title: '泡沫', artist: '邓紫棋', cover: '/images/泡沫.png', audio: '/media/泡沫.mp3', durationLabel: '4:18', rank: 1 },
@@ -158,9 +158,9 @@ export const rankSongs: RankSong[] = [
   { id: 6, title: 'PYRO', artist: 'Chester Young、Castion', cover: '/images/Pyro.png', audio: '/media/PYRO-Chester Young、Castion.mp3', durationLabel: '3:20', rank: 6 },
   { id: 7, title: 'Thunder', artist: 'Imagine Dragons、Khalid', cover: '/images/Thunder.png', audio: '/media/Thunder _ Young Dumb & Broke (Medley)-Imagine Dragons、Khalid.mp3', durationLabel: '3:40', rank: 7 },
   { id: 8, title: 'I Really Want to Stay At Your House', artist: 'Rosa Walton、Hallie Coggins', cover: '/images/赛博朋克.png', audio: '/media/I Really Want to Stay At Your House-Rosa Walton、Hallie Coggins.mp3', durationLabel: '3:15', rank: 8 },
-  { id: 9, title: '光年之外', artist: '邓紫棋', cover: '/images/邓紫棋.jpg', audio: '/media/泡沫.mp3', durationLabel: '4:10', rank: 9 },
-  { id: 10, title: '告白气球', artist: '周杰伦', cover: '/images/周杰伦.webp', audio: '/media/infinity.mp3', durationLabel: '3:35', rank: 10 },
-  { id: 11, title: '演员', artist: '薛之谦', cover: '/images/薛之谦.webp', audio: '/media/cool kids.mp3', durationLabel: '4:20', rank: 11 },
-  { id: 12, title: '起风了', artist: '买辣椒也用券', cover: '/images/林俊杰.jpg', audio: '/media/小城夏天.mp3', durationLabel: '3:50', rank: 12 },
-  { id: 13, title: '孤勇者', artist: '陈奕迅', cover: '/images/陈奕迅.webp', audio: '/media/bezos.mp3', durationLabel: '4:05', rank: 13 },
+  { id: 9, title: '光年之外', artist: '邓紫棋', cover: '/images/邓紫棋.jpg', audio: '', neteaseId: 3351403275, durationLabel: '4:10', rank: 9 },
+  { id: 10, title: '告白气球', artist: '周杰伦', cover: '/images/周杰伦.webp', audio: '', neteaseId: 3383242274, durationLabel: '3:35', rank: 10 },
+  { id: 11, title: '演员', artist: '薛之谦', cover: '/images/薛之谦.webp', audio: '', neteaseId: 3414986484, durationLabel: '4:20', rank: 11 },
+  { id: 12, title: '起风了', artist: '买辣椒也用券', cover: 'https://p2.music.126.net/diGAyEmpymX8G7JcnElncQ==/109951163699673355.jpg', audio: '', neteaseId: 1330348068, durationLabel: '3:50', rank: 12 },
+  { id: 13, title: '孤勇者', artist: '陈奕迅', cover: '/images/陈奕迅.webp', audio: '', neteaseId: 3391057255, durationLabel: '4:05', rank: 13 },
 ];

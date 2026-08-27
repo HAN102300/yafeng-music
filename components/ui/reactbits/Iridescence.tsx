@@ -141,7 +141,6 @@ export default function Iridescence({
       }
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color, speed, amplitude, mouseReact]);
 
   return <div ref={ctnDom} className="w-full h-full" {...rest} />;

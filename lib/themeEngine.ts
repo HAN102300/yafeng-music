@@ -84,7 +84,6 @@ export function calculateTheme(
   // 混合颜色（根据各频段比例）
   const total = bass + mid + treble || 1;
   const bassRatio = bass / total;
-  const midRatio = mid / total;
   const trebleRatio = treble / total;
 
   const colors: ThemeColors = {

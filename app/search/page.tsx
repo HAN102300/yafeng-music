@@ -59,7 +59,6 @@ function SearchContent() {
       setKeyword(initial);
       doSearch(initial);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
 
   const handleSubmit = (e: React.FormEvent) => {

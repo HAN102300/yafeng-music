@@ -61,27 +61,27 @@ function CircularScene({ coverUrl }: SceneProps) {
   return <CircularVisualizer size={350} showCover coverUrl={coverUrl} />;
 }
 
-function SpectrumScene(_: SceneProps) {
+function SpectrumScene() {
   return <SpectrumVisualizer width={600} height={220} barCount={64} />;
 }
 
-function WaveformScene(_: SceneProps) {
+function WaveformScene() {
   return <WaveformVisualizer width={600} height={220} />;
 }
 
-function R3FParticlesScene(_: SceneProps) {
+function R3FParticlesScene() {
   return <ParticleBackground className="absolute inset-0" particleCount={2000} />;
 }
 
-function StarTunnelScene(_: SceneProps) {
+function StarTunnelScene() {
   return <ParticleField className="absolute inset-0" />;
 }
 
-function OglParticlesScene(_: SceneProps) {
+function OglParticlesScene() {
   return <ParticlesScene />;
 }
 
-function OglThreadsScene(_: SceneProps) {
+function OglThreadsScene() {
   return <ThreadsScene />;
 }
 
