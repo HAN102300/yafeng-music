@@ -16,12 +16,16 @@ import {
   fetchToplists,
   fetchHotArtists,
   fetchHotChartTracks,
+  fetchDailyRecommend,
+  fetchPersonalFM,
   toTrack,
   ApiError,
 } from '@/lib/api';
 import type { NetEasePlaylist, NetEaseArtist, NetEaseSong, NetEaseToplist } from '@/lib/server/netEase';
 import type { Track } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
+import { useNcmProfile } from '@/lib/ncmAuth';
+import { toast } from '@/lib/toast';
 import { useQualityTier } from '@/hooks/useQualityTier';
 import SplitText from '@/components/ui/reactbits/SplitText';
 import TiltedCard from '@/components/ui/reactbits/TiltedCard';
@@ -32,6 +36,7 @@ import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { CircularVisualizer } from '@/components/visualizer/CircularVisualizer';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { ArtistCard } from '@/components/cards/ArtistCard';
+import { TrackList } from '@/components/ui/TrackList';
 import { LoadingBlock, ErrorBlock } from '@/components/ui/StateViews';
 
 // ogl WebGL 背景：懒加载 + 禁 SSR
@@ -55,6 +60,36 @@ export default function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  // 登录用户的每日推荐
+  const profile = useNcmProfile();
+  const [dailySongs, setDailySongs] = useState<NetEaseSong[]>([]);
+  const [fmLoading, setFmLoading] = useState(false);
+
+  useEffect(() => {
+    if (!profile) {
+      setDailySongs([]);
+      return;
+    }
+    fetchDailyRecommend()
+      .then(setDailySongs)
+      .catch(() => {});
+  }, [profile]);
+
+  /** 私人 FM 一键开播 */
+  const handleStartFM = async () => {
+    if (fmLoading) return;
+    setFmLoading(true);
+    try {
+      const songs = await fetchPersonalFM();
+      if (songs.length === 0) throw new Error('empty');
+      playQueueFrom(songs.map(toTrack), 0);
+      toast('私人 FM 已开播 🎧', 'success');
+    } catch {
+      toast('私人 FM 暂不可用（需要登录网易云账号）', 'error');
+    } finally {
+      setFmLoading(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -193,6 +228,34 @@ export default function HomePage() {
 
         {data && (
           <>
+            {/* ===== 今日推荐（登录用户） ===== */}
+            {profile && dailySongs.length > 0 && (
+              <section className="mb-16">
+                <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
+                  <div>
+                    <ShinyText text="每日推荐" speed={3} className="text-3xl font-bold" shineColor="#bbf7d0" color="#34d399" />
+                    <p className="text-white/40 text-sm mt-1">根据你的口味每天 6:00 更新</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleStartFM}
+                      disabled={fmLoading}
+                      className="px-4 py-2 rounded-xl text-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                    >
+                      {fmLoading ? '连接中...' : '📻 私人FM'}
+                    </button>
+                    <button
+                      onClick={() => playQueueFrom(dailySongs.map(toTrack), 0)}
+                      className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                    >
+                      ▶ 播放全部
+                    </button>
+                  </div>
+                </div>
+                <TrackList tracks={dailySongs.slice(0, 8).map(toTrack)} />
+              </section>
+            )}
+
             {/* ===== 推荐歌单 ===== */}
             <section className="mb-16">
               <div className="flex items-end justify-between mb-6">

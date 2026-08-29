@@ -2,35 +2,36 @@
 
 /**
  * 导航栏组件
- * 固定顶部，包含 Logo、导航链接、搜索框
+ * 固定顶部，包含 Logo、导航链接、搜索框、用户区（网易云扫码登录态）。
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { getSession } from '@/lib/auth';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useNcmProfile, clearLogin } from '@/lib/ncmAuth';
+import { fetchUserPlaylists } from '@/lib/api';
+import type { NetEasePlaylist } from '@/lib/server/netEase';
+import { toast } from '@/lib/toast';
 
 const navLinks = [
   { href: '/', label: '首页', icon: '🏠' },
   { href: '/songlist', label: '歌单', icon: '📋' },
   { href: '/singer', label: '歌手', icon: '🎤' },
   { href: '/musictop', label: '排行榜', icon: '🏆' },
+  { href: '/history', label: '最近在听', icon: '🕒' },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const profile = useNcmProfile();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [session, setSession] = useState<string | null>(null);
-
-  // 监听登录会话（客户端）
-  useEffect(() => {
-    setSession(getSession());
-    const onStorage = () => setSession(getSession());
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [userPlaylists, setUserPlaylists] = useState<NetEasePlaylist[]>([]);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // 监听滚动
   useEffect(() => {
@@ -40,6 +41,34 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 点击外部关闭用户菜单
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 打开用户菜单时拉取我的歌单
+  useEffect(() => {
+    if (userMenuOpen && profile && userPlaylists.length === 0) {
+      fetchUserPlaylists(profile.userId)
+        .then(setUserPlaylists)
+        .catch(() => {});
+    }
+  }, [userMenuOpen, profile, userPlaylists.length]);
+
+  const handleLogout = () => {
+    clearLogin();
+    setUserMenuOpen(false);
+    setUserPlaylists([]);
+    toast('已退出登录', 'info');
+    router.refresh();
+  };
 
   return (
     <>
@@ -125,13 +154,62 @@ export default function Navbar() {
             >
               <span>💗</span> 喜欢
             </Link>
-            {session ? (
-              <Link
-                href="/login"
-                className="px-4 py-2 rounded-xl text-sm font-medium glass-panel text-white hover:bg-white/10 transition-colors"
-              >
-                {session}
-              </Link>
+
+            {profile ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-purple-500/50 relative bg-white/10">
+                    <Image src={profile.avatarUrl} alt={profile.nickname} width={32} height={32} className="object-cover" />
+                  </div>
+                  <span className="text-sm font-medium text-white max-w-20 truncate hidden sm:block">
+                    {profile.nickname}
+                  </span>
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-64 glass-panel rounded-2xl p-2 shadow-2xl shadow-black/50 z-50"
+                    >
+                      <div className="px-3 py-2 border-b border-white/10">
+                        <p className="text-sm font-medium text-white truncate">{profile.nickname}</p>
+                        <p className="text-xs text-white/40">网易云音乐账号</p>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto py-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        <p className="px-3 py-1.5 text-xs text-white/30">我的歌单</p>
+                        {userPlaylists.length === 0 && (
+                          <p className="px-3 py-2 text-xs text-white/30">加载中...</p>
+                        )}
+                        {userPlaylists.map((p) => (
+                          <Link
+                            key={p.id}
+                            href={`/songlist/${p.id}`}
+                            onClick={() => setUserMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors truncate"
+                          >
+                            📋 {p.name}
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="border-t border-white/10 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-3 py-2 rounded-xl text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 transition-colors text-left"
+                        >
+                          ⏻ 退出登录
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <Link
                 href="/login"

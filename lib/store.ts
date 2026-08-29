@@ -28,6 +28,11 @@ interface MusicStore {
   // UI 状态
   visualizerSceneId: string;
 
+  /** 播放历史（最近在听，去重上限 100） */
+  history: Track[];
+  recordPlay: (song: Track) => void;
+  clearHistory: () => void;
+
   // 播放控制
   play: (song: Track) => void;
   pause: () => void;
@@ -65,6 +70,14 @@ export const useMusicStore = create<MusicStore>()(
       likedTracks: [],
 
       visualizerSceneId: 'circular',
+
+      history: [],
+      recordPlay: (song: Track) => {
+        set((state) => ({
+          history: [song, ...state.history.filter((t) => t.id !== song.id)].slice(0, 100),
+        }));
+      },
+      clearHistory: () => set({ history: [] }),
 
       // 播放控制
       play: (song: Track) => {
@@ -196,6 +209,7 @@ export const useMusicStore = create<MusicStore>()(
         visualizerSceneId: state.visualizerSceneId,
         playMode: state.playMode,
         likedTracks: state.likedTracks,
+        history: state.history,
       }),
       // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（旧在线收藏无法回查，迁本地匹配项）
       migrate: (persisted) => {

@@ -83,6 +83,9 @@ export default function GlobalAudioEngine() {
         audio.load();
         if (isPlayingRef.current) tryPlay();
 
+        // 记录播放历史（最近在听）
+        useMusicStore.getState().recordPlay(currentSong);
+
         // 预取队列下一首的播放地址，切歌零等待
         const { playlist } = useMusicStore.getState();
         const idx = playlist.findIndex((t) => t.id === currentSong.id);
