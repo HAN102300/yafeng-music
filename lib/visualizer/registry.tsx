@@ -55,6 +55,12 @@ const ParticleField = dynamic(() => import('@/components/three/ParticleField'), 
   loading: sceneLoading,
 });
 
+// light 全屏场景：Canvas 2D 流光频谱背景（低配设备可用）
+const FlowSpectrum = dynamic(() => import('@/components/visualizer/scenes/FlowSpectrumBackground').then((m) => m.FlowSpectrumBackground), {
+  ssr: false,
+  loading: sceneLoading,
+});
+
 // ---- center 场景包装（固定尺寸，直接自驱动绘制） ----
 
 function CircularScene({ coverUrl }: SceneProps) {
@@ -85,9 +91,14 @@ function OglThreadsScene() {
   return <ThreadsScene />;
 }
 
+function FlowScene() {
+  return <FlowSpectrum />;
+}
+
 // ---- 注册表 ----
 
 export const SCENES: VisualizerScene[] = [
+  { id: 'flow', name: '流光频谱', icon: '🌊', placement: 'fullscreen', quality: 'light', Component: FlowScene },
   { id: 'circular', name: '环形音浪', icon: '🔮', placement: 'center', quality: 'light', Component: CircularScene },
   { id: 'spectrum', name: '频谱分析', icon: '📊', placement: 'center', quality: 'light', Component: SpectrumScene },
   { id: 'waveform', name: '波形律动', icon: '〰️', placement: 'center', quality: 'light', Component: WaveformScene },

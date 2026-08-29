@@ -15,9 +15,11 @@ interface SceneManagerProps {
   sceneId: string;
   coverUrl?: string;
   quality?: QualityTier;
+  /** 背景模式：只渲染全屏层，不渲染中央可视化（供全局背景层复用） */
+  backgroundOnly?: boolean;
 }
 
-export function SceneManager({ sceneId, coverUrl, quality = 'high' }: SceneManagerProps) {
+export function SceneManager({ sceneId, coverUrl, quality = 'high', backgroundOnly = false }: SceneManagerProps) {
   const scene = getScene(sceneId);
   const isFullscreen = scene.placement === 'fullscreen';
   const degraded = quality === 'low' && scene.quality === 'heavy';
@@ -52,24 +54,26 @@ export function SceneManager({ sceneId, coverUrl, quality = 'high' }: SceneManag
         </AnimatePresence>
       </div>
 
-      {/* 中央可视化区（互斥切换） */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`center-${scene.id}`}
-          initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-          className="relative z-10"
-        >
-          {isFullscreen ? (
-            // 全屏场景时中央显示迷你封面圆环，保留音频反馈焦点
-            <CircularVisualizer size={240} showCover coverUrl={coverUrl} />
-          ) : (
-            <scene.Component coverUrl={coverUrl} />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      {/* 中央可视化区（背景模式跳过） */}
+      {!backgroundOnly && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`center-${scene.id}`}
+            initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="relative z-10"
+          >
+            {isFullscreen ? (
+              // 全屏场景时中央显示迷你封面圆环，保留音频反馈焦点
+              <CircularVisualizer size={240} showCover coverUrl={coverUrl} />
+            ) : (
+              <scene.Component coverUrl={coverUrl} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      )}
     </>
   );
 }

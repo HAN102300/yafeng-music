@@ -27,6 +27,12 @@ interface MusicStore {
 
   // UI 状态
   visualizerSceneId: string;
+  /** 底部播放条是否隐藏（隐藏后右下角显示 mini 悬浮播放器） */
+  barHidden: boolean;
+  setBarHidden: (hidden: boolean) => void;
+  /** 全局背景可视化开关（所有页面音乐驱动的全屏背景） */
+  globalVizEnabled: boolean;
+  setGlobalVizEnabled: (enabled: boolean) => void;
 
   /** 播放历史（最近在听，去重上限 100） */
   history: Track[];
@@ -69,7 +75,11 @@ export const useMusicStore = create<MusicStore>()(
       playMode: 'loop',
       likedTracks: [],
 
-      visualizerSceneId: 'circular',
+      visualizerSceneId: 'flow',
+      barHidden: false,
+      setBarHidden: (hidden: boolean) => set({ barHidden: hidden }),
+      globalVizEnabled: true,
+      setGlobalVizEnabled: (enabled: boolean) => set({ globalVizEnabled: enabled }),
 
       history: [],
       recordPlay: (song: Track) => {
@@ -210,6 +220,8 @@ export const useMusicStore = create<MusicStore>()(
         playMode: state.playMode,
         likedTracks: state.likedTracks,
         history: state.history,
+        barHidden: state.barHidden,
+        globalVizEnabled: state.globalVizEnabled,
       }),
       // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（旧在线收藏无法回查，迁本地匹配项）
       migrate: (persisted) => {

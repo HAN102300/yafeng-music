@@ -8,8 +8,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import BlurText from '@/components/ui/reactbits/BlurText';
-import { parseLRC, findLyricIndex, LyricLine } from '@/lib/lyrics';
-import { fetchLyricText } from '@/lib/api';
+import { findLyricIndex } from '@/lib/lyrics';
+import { useLyrics } from '@/hooks/useLyrics';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
 
 interface LyricsPanelProps {
@@ -19,41 +19,17 @@ interface LyricsPanelProps {
 }
 
 export function LyricsPanel({ lyricUrl, neteaseId, className = '' }: LyricsPanelProps) {
-  const [lines, setLines] = useState<LyricLine[]>([]);
+  const lines = useLyrics(lyricUrl, neteaseId);
   const [index, setIndex] = useState(-1);
   const indexRef = useRef(-1);
-  const linesRef = useRef<LyricLine[]>([]);
+  const linesRef = useRef<typeof lines>([]);
 
-  // 歌曲切换时加载歌词（本地 LRC / 在线歌词）
+  // 同步最新歌词到 ref（帧回调内读取，避免闭包过期）；歌曲切换时重置行号
   useEffect(() => {
-    setLines([]);
-    setIndex(-1);
+    linesRef.current = lines;
     indexRef.current = -1;
-    linesRef.current = [];
-
-    if (!lyricUrl && !neteaseId) return;
-    let cancelled = false;
-
-    const applyText = (text: string | null) => {
-      if (cancelled || !text) return;
-      const parsed = parseLRC(text);
-      setLines(parsed);
-      linesRef.current = parsed;
-    };
-
-    if (neteaseId) {
-      fetchLyricText(neteaseId).then(applyText);
-    } else if (lyricUrl) {
-      fetch(lyricUrl)
-        .then((r) => (r.ok ? r.text() : null))
-        .then(applyText)
-        .catch(() => {});
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lyricUrl, neteaseId]);
+    setIndex(-1);
+  }, [lines]);
 
   // 帧回调内定位当前行，仅行号变化时才 setState（低频）
   useAudioFrame((frame) => {
