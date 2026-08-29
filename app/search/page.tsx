@@ -8,7 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { searchSongs, toTrack } from '@/lib/api';
+import { searchSongs, toTrack, ApiError } from '@/lib/api';
 import type { NetEaseSong } from '@/lib/server/netEase';
 import { useMusicStore } from '@/lib/store';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
@@ -31,7 +31,8 @@ function SearchContent() {
   const [results, setResults] = useState<NetEaseSong[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [error, setError] = useState(false);
+  // 网络故障与「没搜到」严格区分，避免误导用户
+  const [error, setError] = useState<null | 'network' | 'empty'>(null);
 
   const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
   const currentSong = useMusicStore((s) => s.currentSong);
@@ -41,14 +42,14 @@ function SearchContent() {
     if (!q.trim()) return;
     setLoading(true);
     setSearched(true);
-    setError(false);
+    setError(null);
     try {
       const songs = await searchSongs(q, 30);
       setResults(songs);
-      setError(songs.length === 0);
-    } catch {
-      setError(true);
+      setError(songs.length === 0 ? 'empty' : null);
+    } catch (err) {
       setResults([]);
+      setError(err instanceof ApiError ? 'network' : 'empty');
     } finally {
       setLoading(false);
     }
@@ -132,7 +133,20 @@ function SearchContent() {
             </div>
           )}
 
-          {!loading && searched && error && (
+          {!loading && searched && error === 'network' && (
+            <div className="text-center py-16 text-white/40">
+              <p className="text-4xl mb-3">📡</p>
+              <p className="text-white/60">网络异常或服务暂不可用，请稍后重试</p>
+              <button
+                onClick={() => doSearch(keyword.trim())}
+                className="mt-4 px-5 py-2 rounded-xl text-sm bg-white/10 text-white hover:bg-white/15 transition-colors"
+              >
+                重新搜索
+              </button>
+            </div>
+          )}
+
+          {!loading && searched && error === 'empty' && (
             <div className="text-center py-16 text-white/40">
               <p className="text-4xl mb-3">🎵</p>
               <p>没有找到相关歌曲，换个关键词试试</p>

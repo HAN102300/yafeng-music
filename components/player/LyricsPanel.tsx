@@ -65,7 +65,7 @@ export function LyricsPanel({ lyricUrl, neteaseId, className = '' }: LyricsPanel
     }
   });
 
-  if (!lyricUrl || lines.length === 0) return null;
+  if ((!lyricUrl && !neteaseId) || lines.length === 0) return null;
 
   const prevText = index > 0 ? lines[index - 1].text : '';
   const currentText = index >= 0 ? lines[index].text : '';

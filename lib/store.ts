@@ -83,8 +83,13 @@ export const useMusicStore = create<MusicStore>()(
         if (playlist.length === 0) return;
 
         if (playMode === 'random') {
-          const randomIndex = Math.floor(Math.random() * playlist.length);
-          set({ currentSong: playlist[randomIndex], isPlaying: true });
+          // 随机不重复当前曲（单曲队列除外）
+          const candidates =
+            playlist.length > 1
+              ? playlist.filter((s) => s.id !== currentSong?.id)
+              : playlist;
+          const pick = candidates[Math.floor(Math.random() * candidates.length)];
+          set({ currentSong: pick, isPlaying: true });
           return;
         }
 
@@ -101,8 +106,12 @@ export const useMusicStore = create<MusicStore>()(
         if (playlist.length === 0) return;
 
         if (playMode === 'random') {
-          const randomIndex = Math.floor(Math.random() * playlist.length);
-          set({ currentSong: playlist[randomIndex], isPlaying: true });
+          const candidates =
+            playlist.length > 1
+              ? playlist.filter((s) => s.id !== currentSong?.id)
+              : playlist;
+          const pick = candidates[Math.floor(Math.random() * candidates.length)];
+          set({ currentSong: pick, isPlaying: true });
           return;
         }
 

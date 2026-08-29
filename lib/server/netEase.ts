@@ -77,12 +77,19 @@ function toHttps(url: string): string {
   return url.replace(/^http:\/\//i, 'https://');
 }
 
+/** 上游请求统一超时，避免 music.163.com 挂起拖死 Route Handler */
+const UPSTREAM_TIMEOUT_MS = 8000;
+
+async function upstreamFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
+}
+
 // ---------- 公开接口 ----------
 
 /** 搜索歌曲 */
 export async function searchNetEase(keyword: string, limit = 30): Promise<NetEaseSong[]> {
   const q = encodeURIComponent(keyword);
-  const res = await fetch(
+  const res = await upstreamFetch(
     `https://music.163.com/api/search/get/web?s=${q}&type=1&limit=${limit}&offset=0`,
     { headers: { 'User-Agent': UA, Referer: REFERER }, cache: 'no-store' }
   );
@@ -108,7 +115,7 @@ export async function searchNetEase(keyword: string, limit = 30): Promise<NetEas
 
 /** 获取歌词（LRC 文本），失败返回 null */
 export async function getLyricNetEase(id: number): Promise<string | null> {
-  const res = await fetch(
+  const res = await upstreamFetch(
     `https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,
     { headers: { 'User-Agent': UA, Referer: REFERER }, cache: 'no-store' }
   );
@@ -126,7 +133,7 @@ export async function getSongUrlNetEase(id: number): Promise<SongUrlResult | nul
     csrf_token: '',
   });
   const body = new URLSearchParams({ params, encSecKey });
-  const res = await fetch(
+  const res = await upstreamFetch(
     'https://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=',
     {
       method: 'POST',

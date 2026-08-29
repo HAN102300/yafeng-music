@@ -34,6 +34,11 @@ export async function resolveTrackSrc(track: Track): Promise<string> {
   return result.url;
 }
 
+/** 失效某首歌的播放地址缓存（播放失败/中途过期时调用，下次解析重新请求） */
+export function invalidateTrack(id: number): void {
+  cache.delete(id);
+}
+
 /** 预取下一首在线歌的播放地址（供队列预加载） */
 export async function prefetchTrack(track: Track): Promise<void> {
   try {

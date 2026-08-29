@@ -4,10 +4,12 @@ import Navbar from '@/components/ui/Navbar';
 import PlayerBar from '@/components/ui/PlayerBar';
 import GlobalAudioEngine from '@/components/player/GlobalAudioEngine';
 import SmoothScroll from '@/components/animations/SmoothScroll';
+import Toast from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
   title: '雅枫音乐 - 聆听美好',
   description: '雅枫音乐 - 沉浸式可视化音乐播放器，让音乐看得见',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({
@@ -41,6 +43,9 @@ export default function RootLayout({
 
         {/* 底部播放栏 */}
         <PlayerBar />
+
+        {/* 全局 Toast */}
+        <Toast />
       </body>
     </html>
   );

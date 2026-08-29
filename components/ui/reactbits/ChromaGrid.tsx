@@ -3,10 +3,10 @@
 /**
  * React Bits - ChromaGrid（跟随光标去灰阶网格）
  * 来源: reactbits.dev (ts-tailwind)，按项目规范适配：
- * 移除演示数据，onItemClick 取代 url 跳转（用于歌手墙点击播放）
+ * 移除演示数据，onItemClick 取代 url 跳转（用于歌手墙点击播放）；
+ * 光标跟随用 rAF lerp + CSS transition 实现（原 gsap 依赖已移除）
  */
 import React, { useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
 
 export interface ChromaItem {
   image: string;
@@ -21,66 +21,72 @@ export interface ChromaGridProps {
   items: ChromaItem[];
   onItemClick?: (item: ChromaItem, index: number) => void;
   className?: string;
+  /** 光标探照半径（px） */
   radius?: number;
-  damping?: number;
-  fadeOut?: number;
-  ease?: string;
 }
-
-type SetterFn = (v: number | string) => void;
 
 const ChromaGrid: React.FC<ChromaGridProps> = ({
   items,
   onItemClick,
   className = '',
-  radius = 300,
-  damping = 0.45,
-  fadeOut = 0.6,
-  ease = 'power3.out'
+  radius = 300
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const fadeRef = useRef<HTMLDivElement>(null);
-  const setX = useRef<SetterFn | null>(null);
-  const setY = useRef<SetterFn | null>(null);
   const pos = useRef({ x: 0, y: 0 });
+  const target = useRef({ x: 0, y: 0 });
+  const rafRef = useRef(0);
+
+  // rAF lerp：光标位置平滑逼近目标点，收敛后自停
+  const ensureTick = () => {
+    if (rafRef.current) return;
+    const tick = () => {
+      const el = rootRef.current;
+      if (!el) {
+        rafRef.current = 0;
+        return;
+      }
+      const p = pos.current;
+      const t = target.current;
+      p.x += (t.x - p.x) * 0.2;
+      p.y += (t.y - p.y) * 0.2;
+      if (Math.abs(t.x - p.x) < 0.5 && Math.abs(t.y - p.y) < 0.5) {
+        p.x = t.x;
+        p.y = t.y;
+      }
+      el.style.setProperty('--x', `${p.x}px`);
+      el.style.setProperty('--y', `${p.y}px`);
+      rafRef.current =
+        p.x === t.x && p.y === t.y ? 0 : requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
 
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    setX.current = gsap.quickSetter(el, '--x', 'px') as SetterFn;
-    setY.current = gsap.quickSetter(el, '--y', 'px') as SetterFn;
     const { width, height } = el.getBoundingClientRect();
     pos.current = { x: width / 2, y: height / 2 };
-    setX.current(pos.current.x);
-    setY.current(pos.current.y);
+    target.current = { ...pos.current };
+    el.style.setProperty('--x', `${pos.current.x}px`);
+    el.style.setProperty('--y', `${pos.current.y}px`);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    };
   }, []);
 
-  const moveTo = (x: number, y: number) => {
-    gsap.to(pos.current, {
-      x,
-      y,
-      duration: damping,
-      ease,
-      onUpdate: () => {
-        setX.current?.(pos.current.x);
-        setY.current?.(pos.current.y);
-      },
-      overwrite: true
-    });
-  };
-
   const handleMove = (e: React.PointerEvent) => {
-    const r = rootRef.current!.getBoundingClientRect();
-    moveTo(e.clientX - r.left, e.clientY - r.top);
-    gsap.to(fadeRef.current, { opacity: 0, duration: 0.25, overwrite: true });
+    const el = rootRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    target.current = { x: e.clientX - r.left, y: e.clientY - r.top };
+    ensureTick();
+    if (fadeRef.current) fadeRef.current.style.opacity = '0';
   };
 
   const handleLeave = () => {
-    gsap.to(fadeRef.current, {
-      opacity: 1,
-      duration: fadeOut,
-      overwrite: true
-    });
+    if (fadeRef.current) fadeRef.current.style.opacity = '1';
   };
 
   const handleCardMove: React.MouseEventHandler<HTMLElement> = e => {
