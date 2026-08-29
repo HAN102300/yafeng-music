@@ -1,16 +1,26 @@
 'use client';
 
 /**
- * 首页（颠覆性重构版）
- * React Bits (Aurora/SplitText/TiltedCard/ShinyText) + Aceternity (TextGenerateEffect/BentoGrid/GlowingButton)
- * - 无内嵌可视化模式：「进入可视化」直接路由 /visualizer
- * - 「正在播放」卡片绑定全局引擎（迷你环形可视化）
+ * 首页（API 化重构版）
+ * 数据全部来自网易云在线曲库：推荐歌单 / 推荐新歌 / 官方榜单 / 热门歌手。
+ * React Bits (Aurora/SplitText/ShinyText) + Aceternity (TextGenerateEffect/GlowingButton/Sparkles)
  */
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { songs, playlists, artists, Track } from '@/lib/data';
+import {
+  fetchPersonalized,
+  fetchNewSongs,
+  fetchToplists,
+  fetchHotArtists,
+  fetchHotChartTracks,
+  toTrack,
+  ApiError,
+} from '@/lib/api';
+import type { NetEasePlaylist, NetEaseArtist, NetEaseSong, NetEaseToplist } from '@/lib/server/netEase';
+import type { Track } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
 import { useQualityTier } from '@/hooks/useQualityTier';
 import SplitText from '@/components/ui/reactbits/SplitText';
@@ -20,9 +30,19 @@ import { TextGenerateEffect } from '@/components/ui/aceternity/text-generate-eff
 import { GlowingButton } from '@/components/ui/aceternity/glowing-button';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { CircularVisualizer } from '@/components/visualizer/CircularVisualizer';
+import { PlaylistCard } from '@/components/cards/PlaylistCard';
+import { ArtistCard } from '@/components/cards/ArtistCard';
+import { LoadingBlock, ErrorBlock } from '@/components/ui/StateViews';
 
 // ogl WebGL 背景：懒加载 + 禁 SSR
 const Aurora = dynamic(() => import('@/components/ui/reactbits/Aurora'), { ssr: false });
+
+interface HomeData {
+  playlists: NetEasePlaylist[];
+  newSongs: NetEaseSong[];
+  toplists: NetEaseToplist[];
+  artists: NetEaseArtist[];
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -30,15 +50,50 @@ export default function HomePage() {
 
   const currentSong = useMusicStore((s) => s.currentSong);
   const isPlaying = useMusicStore((s) => s.isPlaying);
-  const play = useMusicStore((s) => s.play);
   const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
 
-  const handleStartListening = () => {
-    playQueueFrom(songs, 0);
+  const [data, setData] = useState<HomeData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const [playlists, newSongs, toplists, artists] = await Promise.all([
+        fetchPersonalized(12),
+        fetchNewSongs(8),
+        fetchToplists(),
+        fetchHotArtists(12),
+      ]);
+      setData({ playlists, newSongs, toplists, artists });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '内容加载失败');
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  /** 开始聆听：热歌榜整列入队 */
+  const handleStartListening = async () => {
+    if (starting) return;
+    setStarting(true);
+    try {
+      const tracks = await fetchHotChartTracks(30);
+      if (tracks.length === 0) throw new Error('empty');
+      playQueueFrom(tracks, 0);
+    } catch {
+      router.push('/musictop');
+    } finally {
+      setStarting(false);
+    }
   };
 
   const handlePlaySong = (song: Track) => {
-    play(song);
+    const tracks = (data?.newSongs ?? []).map(toTrack);
+    const idx = tracks.findIndex((t) => t.id === song.id);
+    playQueueFrom(tracks, Math.max(0, idx));
   };
 
   return (
@@ -72,7 +127,7 @@ export default function HomePage() {
           className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-white to-pink-300 drop-shadow-2xl"
         />
         <TextGenerateEffect
-          words="让 音 乐 看 得 见"
+          words="海量在线曲库 · 让音乐看得见"
           className="text-xl md:text-2xl text-white/70 mt-2 text-center"
         />
 
@@ -84,7 +139,7 @@ export default function HomePage() {
           className="flex flex-wrap items-center justify-center gap-4 mt-10"
         >
           <GlowingButton size="lg" onClick={handleStartListening}>
-            🎧 开始聆听
+            {starting ? '正在准备...' : '🎧 开始聆听'}
           </GlowingButton>
           <GlowingButton size="lg" variant="secondary" onClick={() => router.push('/visualizer')}>
             🌌 进入可视化
@@ -133,154 +188,194 @@ export default function HomePage() {
           </motion.section>
         )}
 
-        {/* ===== 推荐歌曲（TiltedCard） ===== */}
-        <section className="mb-16">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <ShinyText text="推荐歌曲" speed={3} className="text-3xl font-bold" shineColor="#e9d5ff" color="#a78bfa" />
-              <p className="text-white/40 text-sm mt-1">点击卡片即刻播放</p>
-            </div>
-            <button
-              onClick={() => router.push('/musictop')}
-              className="text-sm text-white/50 hover:text-white transition-colors"
-            >
-              查看排行 →
-            </button>
-          </div>
+        {error && <ErrorBlock message={error} onRetry={load} />}
+        {!error && !data && <LoadingBlock label="正在连接在线曲库..." />}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {songs.map((song, index) => (
-              <motion.div
-                key={song.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: (index % 4) * 0.08 }}
-              >
-                <TiltedCard
-                  imageSrc={song.cover}
-                  altText={song.title}
-                  captionText={`${song.title} - ${song.artist}`}
-                  containerWidth="100%"
-                  containerHeight="220px"
-                  imageWidth="100%"
-                  imageHeight="220px"
-                  rotateAmplitude={10}
-                  scaleOnHover={1.06}
-                  displayOverlayContent
-                  onClick={() => handlePlaySong(song)}
-                  overlayContent={
-                    <div className="flex items-end justify-between rounded-b-[15px] bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-10 w-full">
-                      <div className="min-w-0">
-                        <p className="text-white text-sm font-semibold truncate">{song.title}</p>
-                        <p className="text-white/60 text-xs truncate">{song.artist}</p>
-                      </div>
-                      <div className="w-9 h-9 shrink-0 rounded-full bg-purple-500/90 flex items-center justify-center shadow-lg shadow-purple-500/40">
-                        {currentSong?.id === song.id && isPlaying ? (
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  }
-                />
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ===== 歌单精选（Bento 布局） ===== */}
-        <section className="mb-16">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <ShinyText text="歌单精选" speed={3} className="text-3xl font-bold" shineColor="#fbcfe8" color="#f472b6" />
-              <p className="text-white/40 text-sm mt-1">为每个心情准备一份歌单</p>
-            </div>
-            <button
-              onClick={() => router.push('/songlist')}
-              className="text-sm text-white/50 hover:text-white transition-colors"
-            >
-              全部歌单 →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[10rem] gap-4">
-            {playlists.slice(0, 6).map((playlist, index) => (
-              <motion.div
-                key={playlist.id}
-                initial={{ opacity: 0, scale: 0.94 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => router.push('/songlist')}
-                className={`group relative rounded-2xl overflow-hidden border border-white/10 cursor-pointer ${
-                  index === 0 || index === 3 ? 'md:col-span-2' : ''
-                }`}
-              >
-                <Image
-                  src={playlist.cover}
-                  alt={playlist.name}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-white font-semibold">{playlist.name}</h3>
-                  <p className="text-white/50 text-xs mt-0.5">{playlist.count} 首歌曲</p>
+        {data && (
+          <>
+            {/* ===== 推荐歌单 ===== */}
+            <section className="mb-16">
+              <div className="flex items-end justify-between mb-6">
+                <div>
+                  <ShinyText text="推荐歌单" speed={3} className="text-3xl font-bold" shineColor="#fbcfe8" color="#f472b6" />
+                  <p className="text-white/40 text-sm mt-1">每日更新的精选合集</p>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+                <button
+                  onClick={() => router.push('/songlist')}
+                  className="text-sm text-white/50 hover:text-white transition-colors"
+                >
+                  歌单广场 →
+                </button>
+              </div>
 
-        {/* ===== 热门歌手 ===== */}
-        <section className="mb-20">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <ShinyText text="热门歌手" speed={3} className="text-3xl font-bold" shineColor="#a5f3fc" color="#22d3ee" />
-              <p className="text-white/40 text-sm mt-1">发现你喜爱的音乐人</p>
-            </div>
-            <button
-              onClick={() => router.push('/singer')}
-              className="text-sm text-white/50 hover:text-white transition-colors"
-            >
-              全部歌手 →
-            </button>
-          </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 [&::-webkit-scrollbar]:h-[6px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                {data.playlists.map((playlist, index) => (
+                  <motion.div
+                    key={playlist.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                    className="w-40 md:w-48 shrink-0"
+                  >
+                    <PlaylistCard playlist={playlist} onClick={() => router.push(`/songlist/${playlist.id}`)} />
+                  </motion.div>
+                ))}
+              </div>
+            </section>
 
-          <div className="flex gap-6 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-[6px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-            {artists.slice(0, 12).map((artist, index) => (
-              <motion.div
-                key={artist.id}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => router.push('/singer')}
-                className="group flex flex-col items-center shrink-0 cursor-pointer"
-              >
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-purple-400 transition-all relative">
-                  <Image
-                    src={artist.avatar}
-                    alt={artist.name}
-                    width={80}
-                    height={80}
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
+            {/* ===== 推荐新歌（TiltedCard） ===== */}
+            <section className="mb-16">
+              <div className="flex items-end justify-between mb-6">
+                <div>
+                  <ShinyText text="新歌速递" speed={3} className="text-3xl font-bold" shineColor="#e9d5ff" color="#a78bfa" />
+                  <p className="text-white/40 text-sm mt-1">点击封面即刻播放</p>
                 </div>
-                <p className="text-xs text-white/60 group-hover:text-white mt-2 transition-colors">
-                  {artist.name}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+                <button
+                  onClick={() => router.push('/musictop')}
+                  className="text-sm text-white/50 hover:text-white transition-colors"
+                >
+                  查看排行 →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                {data.newSongs.map((song, index) => (
+                  <motion.div
+                    key={song.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: (index % 4) * 0.08 }}
+                  >
+                    <TiltedCard
+                      imageSrc={song.cover}
+                      altText={song.name}
+                      captionText={`${song.name} - ${song.artists}`}
+                      containerWidth="100%"
+                      containerHeight="220px"
+                      imageWidth="100%"
+                      imageHeight="220px"
+                      rotateAmplitude={10}
+                      scaleOnHover={1.06}
+                      displayOverlayContent
+                      onClick={() => handlePlaySong(toTrack(song))}
+                      overlayContent={
+                        <div className="flex items-end justify-between rounded-b-[15px] bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-10 w-full">
+                          <div className="min-w-0">
+                            <p className="text-white text-sm font-semibold truncate">{song.name}</p>
+                            <p className="text-white/60 text-xs truncate">{song.artists}</p>
+                          </div>
+                          <div className="w-9 h-9 shrink-0 rounded-full bg-purple-500/90 flex items-center justify-center shadow-lg shadow-purple-500/40">
+                            {currentSong?.id === song.id && isPlaying ? (
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      }
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+
+            {/* ===== 官方榜单入口 ===== */}
+            {data.toplists.length > 0 && (
+              <section className="mb-16">
+                <div className="flex items-end justify-between mb-6">
+                  <div>
+                    <ShinyText text="官方榜单" speed={3} className="text-3xl font-bold" shineColor="#fde68a" color="#f59e0b" />
+                    <p className="text-white/40 text-sm mt-1">实时更新的权威排行</p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/musictop')}
+                    className="text-sm text-white/50 hover:text-white transition-colors"
+                  >
+                    全部榜单 →
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {data.toplists.slice(0, 4).map((toplist, index) => (
+                    <motion.div
+                      key={toplist.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.06 }}
+                      onClick={() => router.push(`/musictop?top=${toplist.id}`)}
+                      className="group relative rounded-2xl overflow-hidden border border-white/10 cursor-pointer hover:border-amber-500/40 transition-colors"
+                    >
+                      <div className="relative h-32">
+                        <Image
+                          src={toplist.cover}
+                          alt={toplist.name}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 25vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                        <div className="absolute bottom-3 left-4 right-4">
+                          <h3 className="text-white font-bold">{toplist.name}</h3>
+                          <p className="text-white/50 text-xs mt-0.5">{toplist.updateFrequency}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 space-y-1.5 bg-black/30">
+                        {toplist.tracks.slice(0, 3).map((t, i) => (
+                          <p key={i} className="text-xs text-white/50 truncate">
+                            <span className={`mr-1.5 font-semibold ${i === 0 ? 'text-amber-400' : 'text-white/30'}`}>
+                              {i + 1}
+                            </span>
+                            {t.first} - {t.second}
+                          </p>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ===== 热门歌手 ===== */}
+            {data.artists.length > 0 && (
+              <section className="mb-20">
+                <div className="flex items-end justify-between mb-6">
+                  <div>
+                    <ShinyText text="热门歌手" speed={3} className="text-3xl font-bold" shineColor="#a5f3fc" color="#22d3ee" />
+                    <p className="text-white/40 text-sm mt-1">发现你喜爱的音乐人</p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/singer')}
+                    className="text-sm text-white/50 hover:text-white transition-colors"
+                  >
+                    全部歌手 →
+                  </button>
+                </div>
+
+                <div className="flex gap-6 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-[6px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                  {data.artists.map((artist, index) => (
+                    <motion.div
+                      key={artist.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: Math.min(index * 0.03, 0.4) }}
+                      className="shrink-0"
+                    >
+                      <ArtistCard artist={artist} onClick={() => router.push(`/singer/${artist.id}`)} />
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

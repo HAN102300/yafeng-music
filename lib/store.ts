@@ -9,7 +9,8 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Track, songs } from './data';
+import type { Track } from './data';
+import { localSongs } from './data';
 import { audioEngine } from './audio/engine';
 
 export type PlayMode = 'loop' | 'single' | 'random';
@@ -21,7 +22,8 @@ interface MusicStore {
   playlist: Track[];
   volume: number;
   playMode: PlayMode;
-  likedIds: number[];
+  /** 收藏的歌曲（完整 Track 快照，本地/在线歌均可恢复展示） */
+  likedTracks: Track[];
 
   // UI 状态
   visualizerSceneId: string;
@@ -37,6 +39,10 @@ interface MusicStore {
   setPlaylist: (list: Track[]) => void;
   /** 整列入队并从指定下标开始播放（排行榜/歌单场景） */
   playQueueFrom: (list: Track[], index: number) => void;
+  /** 从队列移除单曲（移除当前曲时自动切换到下一首） */
+  removeFromQueue: (id: number) => void;
+  /** 清空队列并停止播放 */
+  clearQueue: () => void;
 
   // 播放模式 / 收藏
   setPlayMode: (mode: PlayMode) => void;
@@ -50,13 +56,13 @@ interface MusicStore {
 export const useMusicStore = create<MusicStore>()(
   persist(
     (set, get) => ({
-      // 初始状态
+      // 初始状态（队列不再预置本地歌，全部来自在线曲库）
       currentSong: null,
       isPlaying: false,
-      playlist: songs,
+      playlist: [],
       volume: 0.7,
       playMode: 'loop',
-      likedIds: [],
+      likedTracks: [],
 
       visualizerSceneId: 'circular',
 
@@ -137,23 +143,51 @@ export const useMusicStore = create<MusicStore>()(
         set({ playlist: list, currentSong: list[safeIndex], isPlaying: true });
       },
 
+      removeFromQueue: (id: number) => {
+        const { playlist, currentSong } = get();
+        const idx = playlist.findIndex((t) => t.id === id);
+        if (idx === -1) return;
+        const newList = playlist.filter((t) => t.id !== id);
+
+        if (currentSong?.id !== id) {
+          set({ playlist: newList });
+          return;
+        }
+        // 移除的是当前曲：队列空则停止，否则切到相邻一首
+        if (newList.length === 0) {
+          set({ playlist: [], currentSong: null, isPlaying: false });
+          audioEngine.getAudio()?.pause();
+          return;
+        }
+        const nextTrack = newList[Math.min(idx, newList.length - 1)];
+        set({ playlist: newList, currentSong: nextTrack, isPlaying: true });
+      },
+
+      clearQueue: () => {
+        set({ playlist: [], currentSong: null, isPlaying: false });
+        audioEngine.getAudio()?.pause();
+      },
+
       setPlayMode: (mode: PlayMode) => set({ playMode: mode }),
 
       toggleLike: (song: Track) => {
         set((state) => {
-          const set = new Set(state.likedIds);
-          if (set.has(song.id)) set.delete(song.id);
-          else set.add(song.id);
-          return { likedIds: Array.from(set) };
+          const exists = state.likedTracks.some((t) => t.id === song.id);
+          return {
+            likedTracks: exists
+              ? state.likedTracks.filter((t) => t.id !== song.id)
+              : [song, ...state.likedTracks].slice(0, 500),
+          };
         });
       },
 
-      isLiked: (songId: number) => get().likedIds.includes(songId),
+      isLiked: (songId: number) => get().likedTracks.some((t) => t.id === songId),
 
       setVisualizerScene: (id: string) => set({ visualizerSceneId: id }),
     }),
     {
       name: 'yafeng-music-player',
+      version: 1,
       // 只持久化低敏感、可恢复的状态；isPlaying 不持久化（自动播放策略）
       partialize: (state) => ({
         currentSong: state.currentSong,
@@ -161,8 +195,20 @@ export const useMusicStore = create<MusicStore>()(
         volume: state.volume,
         visualizerSceneId: state.visualizerSceneId,
         playMode: state.playMode,
-        likedIds: state.likedIds,
+        likedTracks: state.likedTracks,
       }),
+      // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（旧在线收藏无法回查，迁本地匹配项）
+      migrate: (persisted) => {
+        const p = persisted as Partial<{
+          likedIds: number[];
+          likedTracks: Track[];
+        }> & Record<string, unknown>;
+        if (!p.likedTracks && Array.isArray(p.likedIds)) {
+          const ids = new Set(p.likedIds);
+          p.likedTracks = localSongs.filter((t) => ids.has(t.id));
+        }
+        return p as unknown as MusicStore;
+      },
     }
   )
 );

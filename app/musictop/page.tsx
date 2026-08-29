@@ -1,141 +1,234 @@
 'use client';
 
 /**
- * 排行榜页（颠覆性重构版）
- * React Bits AnimatedList（滚动渐入榜单）+ CountUp（热度滚动）+ Aceternity Sparkles
- * 行点击 → playQueueFrom(rankSongs, index) 整列入队，保证 next/prev 在榜单内循环
+ * 排行榜页（API 化重构版）
+ * 真实网易云官方榜单（toplist 接口）：左侧榜单选择 + 右侧真实曲目列表。
+ * 支持从首页带 ?top=<id> 直达指定榜单。
  */
-import { rankSongs, RankSong } from '@/lib/data';
-import { useMusicStore } from '@/lib/store';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Sparkles } from '@/components/ui/aceternity/sparkles';
-import AnimatedList from '@/components/ui/reactbits/AnimatedList';
-import CountUp from '@/components/ui/reactbits/CountUp';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
 import { motion } from 'framer-motion';
+import { fetchToplists, fetchPlaylistDetail, toTrack, ApiError } from '@/lib/api';
+import type { NetEaseToplist, NetEaseSong } from '@/lib/server/netEase';
+import { useMusicStore } from '@/lib/store';
+import { Sparkles } from '@/components/ui/aceternity/sparkles';
+import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { LoadingBlock, ErrorBlock } from '@/components/ui/StateViews';
+import { formatPlayCount } from '@/lib/format';
 
-// 演示热度值：按排名递减
-function heatOf(rank: number): number {
-  return Math.round(9999 - (rank - 1) * 573);
+function TopContent() {
+  const searchParams = useSearchParams();
+  const topParam = searchParams.get('top');
+
+  const [toplists, setToplists] = useState<NetEaseToplist[]>([]);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [songs, setSongs] = useState<NetEaseSong[]>([]);
+  const [meta, setMeta] = useState<{ playCount: number; trackCount: number } | null>(null);
+  const [listLoading, setListLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
+  const currentSong = useMusicStore((s) => s.currentSong);
+  const isPlaying = useMusicStore((s) => s.isPlaying);
+
+  // 榜单目录
+  useEffect(() => {
+    (async () => {
+      setListLoading(true);
+      try {
+        const list = await fetchToplists();
+        setToplists(list);
+        setError(null);
+        if (list.length > 0) {
+          const fromParam = topParam ? list.find((t) => t.id === Number(topParam)) : undefined;
+          setActiveId((fromParam ?? list[0]).id);
+        }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : '榜单加载失败');
+      } finally {
+        setListLoading(false);
+      }
+    })();
+  }, [topParam]);
+
+  // 当前榜单曲目
+  const loadChart = useCallback(async (id: number) => {
+    setDetailError(null);
+    try {
+      const res = await fetchPlaylistDetail(id, 100);
+      setSongs(res.songs);
+      setMeta({ playCount: res.playlist.playCount, trackCount: res.total });
+    } catch (err) {
+      setDetailError(err instanceof ApiError ? err.message : '榜单曲目加载失败');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeId) loadChart(activeId);
+  }, [activeId, loadChart]);
+
+  if (listLoading) return <LoadingBlock label="正在加载榜单..." />;
+  if (error)
+    return <ErrorBlock message={error} onRetry={() => location.reload()} />;
+
+  return (
+    <div className="max-w-6xl mx-auto relative z-10">
+      {/* 页面标题 */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <ShinyText text="排行榜" speed={3} className="text-4xl font-bold" shineColor="#fde68a" color="#f59e0b" />
+        <p className="text-white/50 mt-1">官方真实榜单 · 实时更新 · 点击整榜入队播放</p>
+      </motion.div>
+
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* 左侧：榜单选择 */}
+        <div className="lg:w-64 shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[70vh] pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {toplists.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveId(t.id)}
+              className={`flex items-center gap-3 p-2.5 rounded-2xl text-left transition-all border shrink-0 lg:w-full min-w-[180px] ${
+                activeId === t.id
+                  ? 'bg-white/10 border-amber-500/40'
+                  : 'border-transparent hover:bg-white/5'
+              }`}
+            >
+              <div className="w-11 h-11 rounded-xl overflow-hidden relative shrink-0">
+                <Image src={t.cover} alt={t.name} width={44} height={44} className="object-cover" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-medium truncate ${activeId === t.id ? 'text-amber-300' : 'text-white'}`}>
+                  {t.name}
+                </p>
+                <p className="text-[11px] text-white/40 truncate">{t.updateFrequency}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* 右侧：当前榜单 */}
+        <div className="flex-1 min-w-0">
+          {detailError && <ErrorBlock message={detailError} onRetry={() => activeId && loadChart(activeId)} />}
+
+          {!detailError && songs.length === 0 && <LoadingBlock label="正在加载曲目..." />}
+
+          {!detailError && songs.length > 0 && (
+            <>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <p className="text-sm text-white/40">
+                  {meta && (
+                    <>
+                      共 {meta.trackCount} 首 · 播放量 {formatPlayCount(meta.playCount)}
+                    </>
+                  )}
+                </p>
+                <button
+                  onClick={() => playQueueFrom(songs.map(toTrack), 0)}
+                  className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                >
+                  ▶ 播放整榜
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {songs.map((song, i) => {
+                  const isCurrent = currentSong?.id === song.id;
+                  return (
+                    <motion.button
+                      key={song.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.03, 0.5) }}
+                      onClick={() => playQueueFrom(songs.map(toTrack), i)}
+                      className={`w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all group border ${
+                        isCurrent
+                          ? 'bg-white/10 border-purple-500/30 shadow-lg shadow-purple-500/10'
+                          : 'border-transparent hover:bg-white/5'
+                      }`}
+                    >
+                      {/* 排名 */}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                          i < 3
+                            ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30'
+                            : 'bg-white/10 text-white/60'
+                        }`}
+                      >
+                        {i + 1}
+                      </div>
+
+                      {/* 封面 */}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 relative bg-white/5">
+                        <Image
+                          src={song.cover}
+                          alt={song.name}
+                          width={48}
+                          height={48}
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        {isCurrent && isPlaying && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div className="flex items-end gap-0.5 h-4">
+                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '60%' }} />
+                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 信息 */}
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium truncate flex items-center gap-1.5 ${isCurrent ? 'text-purple-300' : 'text-white'}`}>
+                          <span className="truncate">{song.name}</span>
+                          {song.fee > 0 && (
+                            <span className="px-1.5 py-px rounded text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                              VIP
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-white/50 truncate">{song.artists}</p>
+                      </div>
+
+                      {/* 专辑 */}
+                      <span className="text-sm text-white/40 truncate hidden xl:block w-40">{song.album}</span>
+
+                      {/* 播放图标 */}
+                      <div className="w-8 flex items-center justify-center">
+                        {!isCurrent && (
+                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function MusicTopPage() {
-  const currentSong = useMusicStore((s) => s.currentSong);
-  const isPlaying = useMusicStore((s) => s.isPlaying);
-  const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
-
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
       <Sparkles density={20} color="#f59e0b" className="opacity-15" />
-
-      <div className="max-w-4xl mx-auto relative z-10">
-        {/* 页面标题 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-end justify-between"
-        >
-          <div>
-            <ShinyText text="排行榜" speed={3} className="text-4xl font-bold" shineColor="#fde68a" color="#f59e0b" />
-            <p className="text-white/50 mt-1">实时热门音乐排行 · 点击整榜入队播放</p>
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-amber-400 animate-spin" />
           </div>
-          <div className="text-right hidden sm:block">
-            <p className="text-xs text-white/40">总热度</p>
-            <CountUp to={87423} duration={2.5} separator="," className="text-2xl font-bold text-amber-400" />
-          </div>
-        </motion.div>
-
-        {/* 排行榜列表（AnimatedList 渐入 + 键盘导航） */}
-        <AnimatedList<RankSong>
-          items={rankSongs}
-          maxHeight="calc(100vh - 260px)"
-          onItemSelect={(_, index) => playQueueFrom(rankSongs, index)}
-          renderItem={(item, index, selected) => {
-            const isCurrentSong = currentSong?.id === item.id;
-            return (
-              <div
-                className={`
-                  flex items-center gap-4 p-3 md:p-4 rounded-2xl
-                  transition-all duration-300 group border
-                  ${isCurrentSong
-                    ? 'bg-white/10 border-purple-500/30 shadow-lg shadow-purple-500/10'
-                    : selected
-                      ? 'bg-white/5 border-white/10'
-                      : 'border-transparent'
-                  }
-                `}
-              >
-                {/* 排名 */}
-                <div
-                  className={`
-                    w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0
-                    ${index < 3
-                      ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30'
-                      : 'bg-white/10 text-white/60'
-                    }
-                  `}
-                >
-                  {item.rank}
-                </div>
-
-                {/* 封面 */}
-                <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 relative">
-                  <Image
-                    src={item.cover}
-                    alt={item.title}
-                    width={48}
-                    height={48}
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  {isCurrentSong && isPlaying && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <div className="flex items-end gap-0.5 h-4">
-                        <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '60%' }} />
-                        <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                        <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 歌曲信息 */}
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium truncate ${isCurrentSong ? 'text-purple-400' : 'text-white'}`}>
-                    {item.title}
-                  </p>
-                  <p className="text-sm text-white/50 truncate">{item.artist}</p>
-                </div>
-
-                {/* 热度（CountUp 滚动） */}
-                <div className="hidden md:flex flex-col items-end w-20">
-                  <span className="text-xs text-white/30">热度</span>
-                  <CountUp
-                    to={heatOf(item.rank)}
-                    duration={1.5}
-                    delay={index * 0.05}
-                    separator=","
-                    className="text-sm font-semibold text-white/70"
-                  />
-                </div>
-
-                {/* 时长 */}
-                <span className="text-sm text-white/40 hidden md:block w-10 text-right">{item.durationLabel}</span>
-
-                {/* 播放图标 */}
-                <div className="w-8 flex items-center justify-center">
-                  {!isCurrentSong || !isPlaying ? (
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            );
-          }}
-        />
-      </div>
+        }
+      >
+        <TopContent />
+      </Suspense>
     </div>
   );
 }

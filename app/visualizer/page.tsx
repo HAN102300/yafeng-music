@@ -10,8 +10,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { songs } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
+import { fetchHotChartTracks } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { useAudioProgress } from '@/hooks/useAudioProgress';
 import { useDragPercent } from '@/hooks/useDragPercent';
@@ -83,9 +84,16 @@ export default function VisualizerPage() {
     };
   }, []);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!currentSong) {
-      playQueueFrom(songs, 0);
+      // 无队列时拉取热歌榜开播
+      try {
+        const tracks = await fetchHotChartTracks(30);
+        if (tracks.length === 0) throw new Error('empty');
+        playQueueFrom(tracks, 0);
+      } catch {
+        toast('在线曲库暂不可用，请稍后重试或先搜索歌曲', 'error');
+      }
     } else {
       togglePlay();
     }

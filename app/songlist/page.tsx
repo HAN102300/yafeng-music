@@ -1,54 +1,71 @@
 'use client';
 
 /**
- * 歌单列表页（颠覆性重构版）
- * React Bits SpotlightCard 网格 + Aceternity GlowingButton 分类 chips
- * 分类筛选真实生效（本地 state）；点击歌单 → 推荐曲目入队播放
+ * 歌单广场（API 化重构版）
+ * 真实网易云歌单数据：分类 tab（catalogue 接口）+ 热门/精品歌单网格 + 分页加载。
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { playlists, songs } from '@/lib/data';
-import { useMusicStore } from '@/lib/store';
-import Image from 'next/image';
+import { fetchPlaylistCatalogue, fetchHotPlaylists, ApiError } from '@/lib/api';
+import type { NetEasePlaylist } from '@/lib/server/netEase';
+import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { GlowingButton } from '@/components/ui/aceternity/glowing-button';
-import SpotlightCard from '@/components/ui/reactbits/SpotlightCard';
 import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { LoadingBlock, ErrorBlock, EmptyBlock } from '@/components/ui/StateViews';
 
-// 歌单 id → 分类（数据层无分类字段，这里维护展示用映射）
-const PLAYLIST_CATEGORY: Record<number, string> = {
-  1: '国风',
-  2: '欧美',
-  3: '治愈',
-  4: '电子',
-  5: '流行',
-  6: '治愈',
-  7: '怀旧',
-  8: '电子',
-  9: '流行',
-  10: '治愈',
-  11: '欧美',
-  12: '治愈',
-};
-
-const categories = ['全部', '国风', '欧美', '电子', '流行', '治愈', '怀旧'];
+const PAGE_SIZE = 35;
+/** 常用分类置顶 */
+const PINNED_CATS = ['全部', '华语', '流行', '摇滚', '民谣', '电子', '说唱', '古风', '欧美', '日语', '轻音乐'];
 
 export default function SongListPage() {
-  const [activeCategory, setActiveCategory] = useState('全部');
-  const playQueueFrom = useMusicStore((s) => s.playQueueFrom);
+  const router = useRouter();
+  const [categories, setCategories] = useState<string[]>(PINNED_CATS);
+  const [activeCat, setActiveCat] = useState('全部');
+  const [highquality, setHighquality] = useState(false);
+  const [playlists, setPlaylists] = useState<NetEasePlaylist[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      activeCategory === '全部'
-        ? playlists
-        : playlists.filter((p) => PLAYLIST_CATEGORY[p.id] === activeCategory),
-    [activeCategory]
+  // 分类目录（catalogue 接口，失败则用置顶默认分类）
+  useEffect(() => {
+    fetchPlaylistCatalogue()
+      .then((cats) => {
+        if (cats.length === 0) return;
+        const hot = cats.filter((c) => c.hot).map((c) => c.name);
+        const merged = Array.from(new Set([...PINNED_CATS, ...hot]));
+        setCategories(merged);
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadPage = useCallback(
+    async (cat: string, high: boolean, offset: number, append: boolean) => {
+      if (append) setLoadingMore(true);
+      else {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const res = await fetchHotPlaylists(cat, PAGE_SIZE, offset, high);
+        setPlaylists((prev) => (append ? [...prev, ...res.playlists] : res.playlists));
+        setHasMore(res.more);
+      } catch (err) {
+        if (!append) setError(err instanceof ApiError ? err.message : '歌单加载失败');
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    []
   );
 
-  // 点击歌单：以其 id 为起点将推荐曲目入队（演示数据无歌单曲目映射）
-  const handlePlayPlaylist = (playlistId: number) => {
-    playQueueFrom(songs, playlistId % songs.length);
-  };
+  useEffect(() => {
+    loadPage(activeCat, highquality, 0, false);
+  }, [activeCat, highquality, loadPage]);
 
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
@@ -56,16 +73,24 @@ export default function SongListPage() {
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* 页面标题 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <ShinyText text="歌单广场" speed={3} className="text-4xl font-bold" shineColor="#ddd6fe" color="#8b5cf6" />
-          <p className="text-white/50 mt-1">发现属于你的音乐合集</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <ShinyText text="歌单广场" speed={3} className="text-4xl font-bold" shineColor="#ddd6fe" color="#8b5cf6" />
+            <p className="text-white/50 mt-1">海量在线歌单 · 真实曲库即点即播</p>
+          </div>
+          <button
+            onClick={() => setHighquality(!highquality)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+              highquality
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'glass-panel text-white/60 hover:text-white border-white/10'
+            }`}
+          >
+            ✨ {highquality ? '精品歌单' : '切换精品'}
+          </button>
         </motion.div>
 
-        {/* 分类标签（真实筛选） */}
+        {/* 分类标签（catalogue 真实数据） */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -75,69 +100,53 @@ export default function SongListPage() {
           {categories.map((cat) => (
             <GlowingButton
               key={cat}
-              variant={activeCategory === cat ? 'primary' : 'secondary'}
+              variant={activeCat === cat ? 'primary' : 'secondary'}
               size="sm"
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveCat(cat)}
             >
               {cat}
             </GlowingButton>
           ))}
         </motion.div>
 
-        {/* 歌单网格（SpotlightCard） */}
-        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          <AnimatePresence mode="popLayout">
-            {filtered.map((playlist, index) => (
-              <motion.div
-                key={playlist.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92 }}
-                transition={{ delay: index * 0.04 }}
-              >
-                <SpotlightCard
-                  className="p-3 cursor-pointer group h-full"
-                  spotlightColor="rgba(139, 92, 246, 0.25)"
-                  onClick={() => handlePlayPlaylist(playlist.id)}
-                >
-                  <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
-                    <Image
-                      src={playlist.cover}
-                      alt={playlist.name}
-                      fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[10px] text-white/80 border border-white/10">
-                      {PLAYLIST_CATEGORY[playlist.id]}
-                    </div>
-                    <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-xs text-white/90 border border-white/10">
-                      {playlist.count}首
-                    </div>
-                    {/* 播放按钮 */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 rounded-full bg-purple-500/80 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-purple-500/30">
-                        <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  <h3 className="text-sm text-white/80 truncate font-medium group-hover:text-white transition-colors">
-                    {playlist.name}
-                  </h3>
-                  <p className="text-xs text-white/40 mt-1">{playlist.count}首歌曲</p>
-                </SpotlightCard>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        {error && <ErrorBlock message={error} onRetry={() => loadPage(activeCat, highquality, 0, false)} />}
+        {loading && !error && <LoadingBlock label="正在加载歌单..." />}
 
-        {/* 空态 */}
-        {filtered.length === 0 && (
-          <div className="text-center py-20 text-white/40">该分类下暂无歌单</div>
+        {!error && !loading && playlists.length === 0 && (
+          <EmptyBlock icon="📋" title="该分类下暂无歌单" desc="换个分类试试" />
+        )}
+
+        {/* 歌单网格 */}
+        {!error && !loading && playlists.length > 0 && (
+          <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
+            <AnimatePresence mode="popLayout">
+              {playlists.map((playlist, index) => (
+                <motion.div
+                  key={playlist.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ delay: Math.min((index % PAGE_SIZE) * 0.03, 0.4) }}
+                >
+                  <PlaylistCard playlist={playlist} onClick={() => router.push(`/songlist/${playlist.id}`)} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
+        {/* 加载更多 */}
+        {hasMore && !loading && (
+          <div className="flex justify-center mt-10">
+            <GlowingButton
+              variant="secondary"
+              size="md"
+              onClick={() => loadPage(activeCat, highquality, playlists.length, true)}
+            >
+              {loadingMore ? '加载中...' : '加载更多'}
+            </GlowingButton>
+          </div>
         )}
       </div>
     </div>

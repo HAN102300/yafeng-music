@@ -103,6 +103,15 @@ export async function fetchToplists(): Promise<NetEaseToplist[]> {
   return json.toplists ?? [];
 }
 
+/** 热歌榜前 N 首的 Track 列表（「开始聆听」等一键开播场景） */
+export async function fetchHotChartTracks(limit = 30): Promise<Track[]> {
+  const toplists = await fetchToplists();
+  const hot = toplists.find((t) => t.name.includes('热歌')) ?? toplists[0];
+  if (!hot) throw new ApiError('榜单暂不可用', 'server');
+  const detail = await fetchPlaylistDetail(hot.id, limit);
+  return detail.songs.map(toTrack);
+}
+
 // ---------- 歌单 ----------
 
 export interface PlaylistDetail {
