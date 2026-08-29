@@ -16,7 +16,7 @@ import { useMusicStore } from '@/lib/store';
 import { audioEngine } from '@/lib/audio/engine';
 import { subscribeFrame } from '@/lib/audio/frameScheduler';
 import { calculateTheme, applyThemeToDOM } from '@/lib/themeEngine';
-import { resolveTrackSrc, invalidateTrack } from '@/lib/onlineSource';
+import { resolveTrackSrc, invalidateTrack, prefetchTrack } from '@/lib/onlineSource';
 import { toast } from '@/lib/toast';
 
 export default function GlobalAudioEngine() {
@@ -82,6 +82,12 @@ export default function GlobalAudioEngine() {
         audio.src = src;
         audio.load();
         if (isPlayingRef.current) tryPlay();
+
+        // 预取队列下一首的播放地址，切歌零等待
+        const { playlist } = useMusicStore.getState();
+        const idx = playlist.findIndex((t) => t.id === currentSong.id);
+        const nextTrack = idx >= 0 ? playlist[(idx + 1) % playlist.length] : undefined;
+        if (nextTrack?.neteaseId) prefetchTrack(nextTrack);
       } catch (err) {
         if (cancelled) return;
         console.error('[GlobalAudioEngine] 播放源解析失败:', err);

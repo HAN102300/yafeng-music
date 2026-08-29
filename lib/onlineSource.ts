@@ -4,6 +4,7 @@
  * 过期后下次播放自动重新请求。
  */
 import type { Track } from './data';
+import type { SongQuality } from './server/netEase';
 import { fetchSongUrl } from './api';
 
 interface CachedUrl {
@@ -20,14 +21,14 @@ export function isOnlineTrack(track: Track): boolean {
 }
 
 /** 解析一首歌的实际播放地址（本地歌直接返回本地路径） */
-export async function resolveTrackSrc(track: Track): Promise<string> {
+export async function resolveTrackSrc(track: Track, level: SongQuality = 'standard'): Promise<string> {
   if (!track.neteaseId) return track.audio;
 
   const id = track.neteaseId;
   const hit = cache.get(id);
   if (hit && Date.now() < hit.expires) return hit.url;
 
-  const result = await fetchSongUrl(id);
+  const result = await fetchSongUrl(id, level);
   if (!result?.url) throw new Error('该歌曲暂无可用播放源');
 
   cache.set(id, { url: result.url, expires: Date.now() + URL_TTL_MS });
@@ -40,9 +41,9 @@ export function invalidateTrack(id: number): void {
 }
 
 /** 预取下一首在线歌的播放地址（供队列预加载） */
-export async function prefetchTrack(track: Track): Promise<void> {
+export async function prefetchTrack(track: Track, level: SongQuality = 'standard'): Promise<void> {
   try {
-    await resolveTrackSrc(track);
+    await resolveTrackSrc(track, level);
   } catch {
     /* 预取失败静默忽略 */
   }
