@@ -16,6 +16,8 @@ import { useAudioProgress } from '@/hooks/useAudioProgress';
 import { useDragPercent } from '@/hooks/useDragPercent';
 import { formatTime } from '@/lib/format';
 import { LyricsOverlay } from '@/components/player/LyricsOverlay';
+import { QueueDrawer } from '@/components/player/QueueDrawer';
+import { PlayerSettingsMenu } from '@/components/player/PlayerSettingsMenu';
 
 const MODES: { id: PlayMode; icon: string; label: string }[] = [
   { id: 'loop', icon: '🔁', label: '列表循环' },
@@ -41,6 +43,9 @@ export default function PlayerBar() {
   const toggleLike = useMusicStore((s) => s.toggleLike);
 
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const playlistCount = useMusicStore((s) => s.playlist.length);
 
   const { currentTime, duration } = useAudioProgress();
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -163,7 +168,7 @@ export default function PlayerBar() {
                 </motion.button>
               </div>
 
-              {/* 右侧：模式 + 喜欢 + 歌词 + 音量 + 时间 + 收起 */}
+              {/* 右侧：模式 + 喜欢 + 队列 + 歌词 + 设置 + 音量 + 时间 + 收起 */}
               <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end min-w-0">
                 <button
                   className="hidden sm:flex p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
@@ -183,6 +188,22 @@ export default function PlayerBar() {
                   </svg>
                 </button>
 
+                {/* 播放队列 */}
+                <button
+                  className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+                  onClick={() => setQueueOpen(true)}
+                  title={`播放队列（${playlistCount} 首）`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10m4-1v6m3-3h-6" />
+                  </svg>
+                  {playlistCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-purple-500 text-[9px] leading-4 text-white font-semibold text-center">
+                      {playlistCount > 99 ? '99+' : playlistCount}
+                    </span>
+                  )}
+                </button>
+
                 <button
                   className={`p-2 rounded-full hover:bg-white/10 transition-colors ${lyricsOpen ? 'text-cyan-300' : 'text-white/60 hover:text-white'}`}
                   onClick={() => setLyricsOpen(!lyricsOpen)}
@@ -192,6 +213,24 @@ export default function PlayerBar() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4m4 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </button>
+
+                {/* 设置（音质/倍速/定时关闭） */}
+                <div className="relative">
+                  <button
+                    className={`p-2 rounded-full hover:bg-white/10 transition-colors ${settingsOpen ? 'text-cyan-300' : 'text-white/60 hover:text-white'}`}
+                    onClick={() => setSettingsOpen(!settingsOpen)}
+                    title="播放设置"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v2m0 10v2m-7-7h2m10 0h2M6.34 6.34l1.42 1.42m8.48 8.48l1.42 1.42m0-11.32l-1.42 1.42M7.76 16.24l-1.42 1.42M12 9a3 3 0 100 6 3 3 0 000-6z" />
+                    </svg>
+                  </button>
+                  <AnimatePresence>
+                    {settingsOpen && (
+                      <PlayerSettingsMenu onClose={() => setSettingsOpen(false)} />
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <div className="hidden md:flex items-center gap-2 w-24">
                   <svg className="w-4 h-4 text-white/40" fill="currentColor" viewBox="0 0 24 24">
@@ -286,6 +325,11 @@ export default function PlayerBar() {
         {lyricsOpen && !barHidden && (
           <LyricsOverlay onClose={() => setLyricsOpen(false)} />
         )}
+      </AnimatePresence>
+
+      {/* ===== 播放队列抽屉 ===== */}
+      <AnimatePresence>
+        {queueOpen && <QueueDrawer onClose={() => setQueueOpen(false)} />}
       </AnimatePresence>
     </>
   );

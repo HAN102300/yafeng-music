@@ -11,9 +11,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Track } from './data';
 import { localSongs } from './data';
+import type { SongQuality } from './server/netEase';
 import { audioEngine } from './audio/engine';
 
 export type PlayMode = 'loop' | 'single' | 'random';
+
+/** 音质选项（标准/较高/极高/无损；VIP 档位失败自动回落） */
+export const QUALITY_OPTIONS: { id: SongQuality; label: string }[] = [
+  { id: 'standard', label: '标准' },
+  { id: 'higher', label: '较高' },
+  { id: 'exhigh', label: '极高' },
+  { id: 'lossless', label: '无损' },
+];
+
+/** 倍速选项 */
+export const RATE_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 interface MusicStore {
   // 播放状态（低频）
@@ -33,6 +45,16 @@ interface MusicStore {
   /** 全局背景可视化开关（所有页面音乐驱动的全屏背景） */
   globalVizEnabled: boolean;
   setGlobalVizEnabled: (enabled: boolean) => void;
+
+  /** 音质档位 / 倍速 / 定时关闭（绝对时间戳 ms，null=未开启） */
+  quality: SongQuality;
+  setQuality: (q: SongQuality) => void;
+  playbackRate: number;
+  setPlaybackRate: (r: number) => void;
+  sleepTimerEndsAt: number | null;
+  setSleepTimer: (minutes: number | null) => void;
+  /** 音源重载信号：音质切换时 bump，触发引擎重新解析当前曲 */
+  srcEpoch: number;
 
   /** 播放历史（最近在听，去重上限 100） */
   history: Track[];
@@ -80,6 +102,15 @@ export const useMusicStore = create<MusicStore>()(
       setBarHidden: (hidden: boolean) => set({ barHidden: hidden }),
       globalVizEnabled: true,
       setGlobalVizEnabled: (enabled: boolean) => set({ globalVizEnabled: enabled }),
+
+      quality: 'standard',
+      setQuality: (q: SongQuality) => set((s) => ({ quality: q, srcEpoch: s.srcEpoch + 1 })),
+      playbackRate: 1,
+      setPlaybackRate: (r: number) => set({ playbackRate: r }),
+      sleepTimerEndsAt: null,
+      setSleepTimer: (minutes: number | null) =>
+        set({ sleepTimerEndsAt: minutes ? Date.now() + minutes * 60000 : null }),
+      srcEpoch: 0,
 
       history: [],
       recordPlay: (song: Track) => {
@@ -222,6 +253,8 @@ export const useMusicStore = create<MusicStore>()(
         history: state.history,
         barHidden: state.barHidden,
         globalVizEnabled: state.globalVizEnabled,
+        quality: state.quality,
+        playbackRate: state.playbackRate,
       }),
       // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（旧在线收藏无法回查，迁本地匹配项）
       migrate: (persisted) => {

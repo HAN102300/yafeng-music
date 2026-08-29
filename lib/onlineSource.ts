@@ -40,6 +40,11 @@ export function invalidateTrack(id: number): void {
   cache.delete(id);
 }
 
+/** 清空全部地址缓存（音质切换后旧地址与新档位不符） */
+export function clearUrlCache(): void {
+  cache.clear();
+}
+
 /** 预取下一首在线歌的播放地址（供队列预加载） */
 export async function prefetchTrack(track: Track, level: SongQuality = 'standard'): Promise<void> {
   try {
