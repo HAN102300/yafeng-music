@@ -8,7 +8,7 @@
  * - currentTime/duration 由 useAudioProgress 提供；进度/音量拖拽由 useDragPercent 驱动
  */
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMusicStore, type PlayMode } from '@/lib/store';
@@ -27,6 +27,7 @@ const MODES: { id: PlayMode; icon: string; label: string }[] = [
 
 export default function PlayerBar() {
   const router = useRouter();
+  const pathname = usePathname();
   const currentSong = useMusicStore((s) => s.currentSong);
   const isPlaying = useMusicStore((s) => s.isPlaying);
   const volume = useMusicStore((s) => s.volume);
@@ -57,6 +58,8 @@ export default function PlayerBar() {
     setVolume(Math.max(0, Math.min(1, percent)))
   );
 
+  // 可视化沉浸页独占全屏（页面自带控制舱），隐藏全局播放条
+  if (pathname === '/visualizer') return null;
   if (!currentSong) return null;
 
   const currentMode = MODES.find((m) => m.id === playMode) ?? MODES[0];

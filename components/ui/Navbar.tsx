@@ -63,6 +63,9 @@ export default function Navbar() {
     }
   }, [userMenuOpen, profile, userPlaylists.length]);
 
+  // 可视化沉浸页独占全屏（页面自带返回/控制），隐藏导航栏
+  if (pathname === '/visualizer') return null;
+
   const handleLogout = () => {
     clearLogin();
     setUserMenuOpen(false);
