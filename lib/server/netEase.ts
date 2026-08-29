@@ -146,11 +146,9 @@ export async function searchNetEase(keyword: string, limit = 30): Promise<NetEas
     name: s.name,
     artists: (s.artists ?? []).map((a) => a.name).join(' / '),
     album: s.album?.name ?? '',
-    cover:
-      s.album?.picUrl ||
-      s.album?.blurPicUrl ||
-      s.album?.artist?.img1v1Url ||
-      '/images/播放.png',
+    cover: toHttps(
+      s.album?.picUrl || s.album?.blurPicUrl || s.album?.artist?.img1v1Url || '/images/播放.png'
+    ),
     duration: s.duration ?? 0,
     fee: s.fee ?? 0,
   }));
@@ -229,19 +227,25 @@ interface RawSongV3 {
   id: number;
   name?: string;
   dt?: number;
+  /** 老结构字段名（personalized/newsong 等） */
+  duration?: number;
   fee?: number;
   ar?: { name?: string }[];
+  artists?: { name?: string }[];
   al?: { name?: string; picUrl?: string; blurPicUrl?: string };
+  album?: { name?: string; picUrl?: string; blurPicUrl?: string };
 }
 
 function mapSongV3(s: RawSongV3): NetEaseSong {
+  const artistList = s.ar ?? s.artists ?? [];
+  const album = s.al ?? s.album;
   return {
     id: s.id,
     name: s.name ?? '未知歌曲',
-    artists: (s.ar ?? []).map((a) => a.name ?? '').filter(Boolean).join(' / ') || '未知歌手',
-    album: s.al?.name ?? '',
-    cover: s.al?.picUrl || s.al?.blurPicUrl || '/images/播放.png',
-    duration: s.dt ?? 0,
+    artists: artistList.map((a) => a.name ?? '').filter(Boolean).join(' / ') || '未知歌手',
+    album: album?.name ?? '',
+    cover: toHttps(album?.picUrl || album?.blurPicUrl || '/images/播放.png'),
+    duration: s.dt ?? s.duration ?? 0,
     fee: s.fee ?? 0,
   };
 }
@@ -263,7 +267,7 @@ function mapPlaylist(p: RawPlaylist): NetEasePlaylist {
   return {
     id: p.id,
     name: p.name ?? '未命名歌单',
-    cover: p.coverImgUrl || p.picUrl || '/images/播放.png',
+    cover: toHttps(p.coverImgUrl || p.picUrl || '/images/播放.png'),
     playCount: p.playCount ?? 0,
     trackCount: p.trackCount ?? p.songCount ?? 0,
     creator: p.creator?.nickname,
@@ -287,7 +291,7 @@ function mapArtist(a: RawArtist): NetEaseArtist {
   return {
     id: a.id,
     name: a.name ?? '未知歌手',
-    avatar: a.picUrl || a.img1v1Url || a.cover || '/images/播放.png',
+    avatar: toHttps(a.picUrl || a.img1v1Url || a.cover || '/images/播放.png'),
     musicSize: a.musicSize,
     alias: (a.alias ?? []).filter(Boolean).join(' / ') || undefined,
     briefDesc: a.briefDesc,
@@ -321,7 +325,7 @@ async function weapiPost<T>(
 
 // ---------- 榜单 ----------
 
-/** 全部官方榜单（飙升/新歌/热歌/原创…） */
+/** 全部官方榜单（飙升/新歌/热歌/原创…）。预览曲目可能为空，详情走歌单详情接口 */
 export async function getToplistNetEase(): Promise<NetEaseToplist[]> {
   const res = await upstreamFetch('https://music.163.com/api/toplist', {
     headers: authHeaders(),
@@ -334,21 +338,19 @@ export async function getToplistNetEase(): Promise<NetEaseToplist[]> {
       name?: string;
       coverImgUrl?: string;
       updateFrequency?: string;
-      tracks?: { first?: string; second?: string }[];
+      tracks?: { first?: string; second?: string }[] | null;
     }[];
   };
-  return (json?.list ?? [])
-    .filter((t) => Array.isArray(t.tracks) && t.tracks.length > 0)
-    .map((t) => ({
-      id: t.id,
-      name: t.name ?? '未知榜单',
-      cover: t.coverImgUrl || '/images/播放.png',
-      updateFrequency: t.updateFrequency ?? '',
-      tracks: t.tracks!.slice(0, 5).map((s) => ({
-        first: s.first ?? '',
-        second: s.second ?? '',
-      })),
-    }));
+  return (json?.list ?? []).map((t) => ({
+    id: t.id,
+    name: t.name ?? '未知榜单',
+    cover: toHttps(t.coverImgUrl || '/images/播放.png'),
+    updateFrequency: t.updateFrequency ?? '',
+    tracks: (t.tracks ?? []).slice(0, 5).map((s) => ({
+      first: s.first ?? '',
+      second: s.second ?? '',
+    })),
+  }));
 }
 
 // ---------- 歌单 ----------
@@ -368,27 +370,36 @@ async function getSongsDetailNetEase(ids: number[], musicU?: string | null): Pro
   return (json?.songs ?? []).map(mapSongV3);
 }
 
-/** 歌单详情：元信息 + 分页曲目（榜单详情复用此接口） */
+/** 歌单详情：元信息 + 分页曲目（榜单详情复用此接口，weapi v6） */
 export async function getPlaylistDetailNetEase(
   id: number,
   limit = 100,
   offset = 0,
   musicU?: string | null
 ): Promise<{ playlist: NetEasePlaylist; songs: NetEaseSong[]; total: number } | null> {
-  const res = await upstreamFetch(`https://music.163.com/api/playlist/detail?id=${id}&n=0`, {
-    headers: authHeaders(musicU),
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as {
-    playlist?: RawPlaylist & { trackIds?: { id: number }[] };
-  };
+  const json = await weapiPost<{
+    playlist?: RawPlaylist & {
+      trackIds?: { id: number }[];
+      /** n=1000 时上游可能直接内嵌完整曲目 */
+      tracks?: RawSongV3[];
+    };
+  }>('/weapi/v6/playlist/detail', { id, n: 1000, s: 8, csrf_token: '' }, musicU);
   const raw = json?.playlist;
   if (!raw) return null;
+
   const trackIds = (raw.trackIds ?? []).map((t) => t.id);
   const pageIds = trackIds.slice(offset, offset + limit);
-  const songs = await getSongsDetailNetEase(pageIds, musicU);
-  return { playlist: mapPlaylist(raw), songs, total: trackIds.length };
+
+  // 优先使用内嵌 tracks；否则按页批量取歌曲详情
+  let songs: NetEaseSong[];
+  if (Array.isArray(raw.tracks) && raw.tracks.length > 0 && offset === 0) {
+    const byId = new Map(raw.tracks.map((s) => [s.id, mapSongV3(s)]));
+    songs = pageIds.map((pid) => byId.get(pid)).filter((s): s is NetEaseSong => !!s);
+  } else {
+    songs = await getSongsDetailNetEase(pageIds, musicU);
+  }
+
+  return { playlist: mapPlaylist(raw), songs, total: trackIds.length || raw.trackCount || 0 };
 }
 
 /** 热门歌单（按分类，order=hot） */
@@ -459,43 +470,35 @@ export async function getTopArtistsNetEase(limit = 30, offset = 0): Promise<NetE
 
 // ---------- 推荐 / 热搜（免登录） ----------
 
-/** 个性化推荐歌单 */
+/** 个性化推荐歌单（weapi） */
 export async function getPersonalizedNetEase(limit = 10): Promise<NetEasePlaylist[]> {
-  const res = await upstreamFetch(`https://music.163.com/api/personalized?limit=${limit}`, {
-    headers: authHeaders(),
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as { result?: RawPlaylist[] };
+  const json = await weapiPost<{ result?: RawPlaylist[] }>(
+    '/weapi/personalized/playlist',
+    { limit, offset: 0, total: true, n: 1000, csrf_token: '' }
+  );
   return (json?.result ?? []).map(mapPlaylist);
 }
 
-/** 推荐新歌 */
+/** 推荐新歌（weapi，返回键为 result，元素内嵌 song） */
 export async function getPersonalizedNewSongNetEase(limit = 12): Promise<NetEaseSong[]> {
-  const res = await upstreamFetch(`https://music.163.com/api/personalized/newsong?limit=${limit}`, {
-    headers: authHeaders(),
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as {
-    result?: { song?: RawSongV3 & { al?: { picUrl?: string } } }[];
-  };
-  return (json?.result ?? [])
+  const json = await weapiPost<{
+    result?: { song?: RawSongV3 }[];
+    data?: { song?: RawSongV3 }[];
+  }>('/weapi/personalized/newsong', { type: 'recommend', limit, areaId: 0, csrf_token: '' });
+  return ((json?.result ?? json?.data) ?? [])
     .map((r) => r.song)
     .filter((s): s is NonNullable<typeof s> => !!s)
     .map(mapSongV3);
 }
 
-/** 热搜词 */
+/** 热搜词（weapi /weapi/search/hot，result.hots[].first） */
 export async function getSearchHotNetEase(): Promise<string[]> {
-  const res = await upstreamFetch('https://music.163.com/api/search/hot/detail', {
-    headers: authHeaders(),
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as { data?: { searchWord?: string }[] };
-  return (json?.data ?? [])
-    .map((d) => d.searchWord ?? '')
+  const json = await weapiPost<{ result?: { hots?: { first?: string }[] } }>(
+    '/weapi/search/hot',
+    { type: 1111 }
+  );
+  return (json?.result?.hots ?? [])
+    .map((h) => h.first ?? '')
     .filter(Boolean)
     .slice(0, 12);
 }
