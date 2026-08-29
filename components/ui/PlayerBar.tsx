@@ -198,14 +198,14 @@ export default function PlayerBar() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10m4-1v6m3-3h-6" />
                   </svg>
                   {playlistCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-purple-500 text-[9px] leading-4 text-white font-semibold text-center">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gradient-primary text-[9px] leading-4 text-white font-semibold text-center">
                       {playlistCount > 99 ? '99+' : playlistCount}
                     </span>
                   )}
                 </button>
 
                 <button
-                  className={`p-2 rounded-full hover:bg-white/10 transition-colors ${lyricsOpen ? 'text-cyan-300' : 'text-white/60 hover:text-white'}`}
+                  className={`p-2 rounded-full hover:bg-white/10 transition-colors ${lyricsOpen ? 'text-acc' : 'text-white/60 hover:text-white'}`}
                   onClick={() => setLyricsOpen(!lyricsOpen)}
                   title="歌词"
                 >
@@ -217,7 +217,7 @@ export default function PlayerBar() {
                 {/* 设置（音质/倍速/定时关闭） */}
                 <div className="relative">
                   <button
-                    className={`p-2 rounded-full hover:bg-white/10 transition-colors ${settingsOpen ? 'text-cyan-300' : 'text-white/60 hover:text-white'}`}
+                    className={`p-2 rounded-full hover:bg-white/10 transition-colors ${settingsOpen ? 'text-acc' : 'text-white/60 hover:text-white'}`}
                     onClick={() => setSettingsOpen(!settingsOpen)}
                     title="播放设置"
                   >

@@ -1,7 +1,9 @@
 /**
- * 自适应主题引擎
- * 根据音频特征动态计算主题颜色
+ * 自适应主题引擎（主题感知版）
+ * 根据音频特征在「当前站点主题色」基础上动态调制颜色，
+ * 保证音频驱动变色与用户选择的主题风格一致。
  */
+import { getActiveTheme } from './themes';
 
 export interface ThemeColors {
   primary: string;
@@ -17,44 +19,14 @@ export interface ThemeState {
   speed: number;        // 动画速度 0-1
 }
 
-// 预定义主题色板
-const THEME_PALETTES = {
-  // 低频主导 - 暖色调
-  warm: {
-    primary: '#ff6b6b',
-    secondary: '#ee5a24',
-    accent: '#feca57',
-    background: 'linear-gradient(135deg, #1a0a0a 0%, #2d1b1b 50%, #4a1a1a 100%)',
-    glow: 'rgba(255, 107, 107, 0.4)',
-  },
-  // 中频主导 - 紫色调
-  purple: {
-    primary: '#667eea',
-    secondary: '#764ba2',
-    accent: '#f093fb',
-    background: 'linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #2d1b4e 100%)',
-    glow: 'rgba(102, 126, 234, 0.4)',
-  },
-  // 高频主导 - 冷色调
-  cool: {
-    primary: '#00d9f5',
-    secondary: '#00f5a0',
-    accent: '#00d9f5',
-    background: 'linear-gradient(135deg, #0a1a1a 0%, #1a2d2d 50%, #0a3a3a 100%)',
-    glow: 'rgba(0, 217, 245, 0.4)',
-  },
-  // 均衡 - 粉紫色调
-  balanced: {
-    primary: '#a855f7',
-    secondary: '#ec4899',
-    accent: '#06b6d4',
-    background: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a1a3e 100%)',
-    glow: 'rgba(168, 85, 247, 0.4)',
-  },
+// 频段倾向色（与主题色混合，制造"音乐改变氛围"的感觉）
+const BAND_TINTS = {
+  warm: '#ff6b6b',
+  cool: '#22d3ee',
 };
 
 /**
- * 根据音频数据计算主题
+ * 根据音频数据在当前主题色基础上计算调制后的主题
  */
 export function calculateTheme(
   bass: number,
@@ -62,58 +34,53 @@ export function calculateTheme(
   treble: number,
   energy: number
 ): ThemeState {
-  // 确定主导频段
-  const maxBand = Math.max(bass, mid, treble);
-  
-  let basePalette: ThemeColors;
-  
-  if (maxBand === bass && bass > 0.3) {
-    basePalette = THEME_PALETTES.warm;
-  } else if (maxBand === treble && treble > 0.3) {
-    basePalette = THEME_PALETTES.cool;
-  } else if (maxBand === mid && mid > 0.3) {
-    basePalette = THEME_PALETTES.purple;
-  } else {
-    basePalette = THEME_PALETTES.balanced;
-  }
+  const active = getActiveTheme();
 
   // 根据能量调整强度
   const intensity = Math.min(energy * 1.5, 1);
   const speed = Math.min(energy * 2, 1);
 
-  // 混合颜色（根据各频段比例）
+  // 各频段比例 → 向暖/冷倾向色小幅偏移（最多 35%），保持主题基调
   const total = bass + mid + treble || 1;
   const bassRatio = bass / total;
   const trebleRatio = treble / total;
 
   const colors: ThemeColors = {
-    primary: blendColors(basePalette.primary, THEME_PALETTES.warm.primary, bassRatio * 0.3),
-    secondary: blendColors(basePalette.secondary, THEME_PALETTES.cool.secondary, trebleRatio * 0.3),
-    accent: basePalette.accent,
-    background: basePalette.background,
-    glow: basePalette.glow,
+    primary: blendColors(active.primary, BAND_TINTS.warm, bassRatio * 0.35),
+    secondary: blendColors(active.secondary, active.accent, mid * 0.25),
+    accent: blendColors(active.accent, BAND_TINTS.cool, trebleRatio * 0.3),
+    background: '',
+    glow: withAlpha(active.primary, 0.4 + intensity * 0.2),
   };
 
   return { colors, intensity, speed };
+}
+
+/** hex → "r,g,b" */
+function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return [139, 92, 246];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 /**
  * 混合两个颜色
  */
 function blendColors(color1: string, color2: string, ratio: number): string {
-  const r1 = parseInt(color1.slice(1, 3), 16);
-  const g1 = parseInt(color1.slice(3, 5), 16);
-  const b1 = parseInt(color1.slice(5, 7), 16);
-  
-  const r2 = parseInt(color2.slice(1, 3), 16);
-  const g2 = parseInt(color2.slice(3, 5), 16);
-  const b2 = parseInt(color2.slice(5, 7), 16);
-  
+  const [r1, g1, b1] = hexToRgb(color1);
+  const [r2, g2, b2] = hexToRgb(color2);
+
   const r = Math.round(r1 + (r2 - r1) * ratio);
   const g = Math.round(g1 + (g2 - g1) * ratio);
   const b = Math.round(b1 + (b2 - b1) * ratio);
-  
+
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
 }
 
 /**
@@ -121,7 +88,7 @@ function blendColors(color1: string, color2: string, ratio: number): string {
  */
 export function applyThemeToDOM(theme: ThemeState): void {
   if (typeof document === 'undefined') return;
-  
+
   const root = document.documentElement;
   root.style.setProperty('--color-primary', theme.colors.primary);
   root.style.setProperty('--color-primary-light', theme.colors.secondary);

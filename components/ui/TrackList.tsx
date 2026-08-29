@@ -54,7 +54,7 @@ export function TrackList({ tracks, onPlay, startIndex = 0, className = '', hide
             onClick={() => handleRow(i)}
             className={`group flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-2xl cursor-pointer transition-all border ${
               isCurrent
-                ? 'bg-white/10 border-purple-500/30 shadow-lg shadow-purple-500/10'
+                ? 'bg-white/10 border-pri-mix-45 shadow-lg'
                 : 'border-transparent hover:bg-white/5'
             }`}
           >
@@ -63,9 +63,9 @@ export function TrackList({ tracks, onPlay, startIndex = 0, className = '', hide
               <span className="w-7 text-center text-sm text-white/30 flex-shrink-0 tabular-nums">
                 {isCurrent && isPlaying ? (
                   <span className="inline-flex items-end gap-0.5 h-3.5">
-                    <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '60%' }} />
-                    <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                    <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
+                    <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '60%' }} />
+                    <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                    <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
                   </span>
                 ) : (
                   index + 1
@@ -80,7 +80,7 @@ export function TrackList({ tracks, onPlay, startIndex = 0, className = '', hide
 
             {/* 信息 */}
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium truncate flex items-center gap-1.5 ${isCurrent ? 'text-purple-300' : 'text-white'}`}>
+              <p className={`text-sm font-medium truncate flex items-center gap-1.5 ${isCurrent ? 'text-acc' : 'text-white'}`}>
                 <span className="truncate">{track.title}</span>
                 {(track.fee ?? 0) > 0 && (
                   <span className="px-1.5 py-px rounded text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">

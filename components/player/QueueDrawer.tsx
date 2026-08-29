@@ -94,9 +94,9 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
                   <span className="w-6 text-center text-xs text-white/30 tabular-nums flex-shrink-0">
                     {isCurrent && isPlaying ? (
                       <span className="inline-flex items-end gap-0.5 h-3">
-                        <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '60%' }} />
-                        <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                        <span className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
+                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '60%' }} />
+                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
                       </span>
                     ) : (
                       i + 1
@@ -106,7 +106,7 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
                     <Image src={track.cover} alt={track.title} width={40} height={40} className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm truncate ${isCurrent ? 'text-purple-300 font-medium' : 'text-white'}`}>
+                    <p className={`text-sm truncate ${isCurrent ? 'text-acc font-medium' : 'text-white'}`}>
                       {track.title}
                     </p>
                     <p className="text-xs text-white/40 truncate">{track.artist}</p>

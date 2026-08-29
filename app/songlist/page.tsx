@@ -12,7 +12,7 @@ import type { NetEasePlaylist } from '@/lib/server/netEase';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { GlowingButton } from '@/components/ui/aceternity/glowing-button';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingBlock, ErrorBlock, EmptyBlock } from '@/components/ui/StateViews';
 
 const PAGE_SIZE = 35;
@@ -69,26 +69,26 @@ export default function SongListPage() {
 
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
-      <Sparkles density={25} color="#8b5cf6" className="opacity-20" />
+      <Sparkles density={25} color="var(--color-primary)" className="opacity-20" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* 页面标题 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-end justify-between flex-wrap gap-3">
-          <div>
-            <ShinyText text="歌单广场" speed={3} className="text-4xl font-bold" shineColor="#ddd6fe" color="#8b5cf6" />
-            <p className="text-white/50 mt-1">海量在线歌单 · 真实曲库即点即播</p>
-          </div>
-          <button
-            onClick={() => setHighquality(!highquality)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
-              highquality
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                : 'glass-panel text-white/60 hover:text-white border-white/10'
-            }`}
-          >
-            ✨ {highquality ? '精品歌单' : '切换精品'}
-          </button>
-        </motion.div>
+        <PageHeader
+          title="歌单广场"
+          subtitle="海量在线歌单 · 真实曲库即点即播"
+          action={
+            <button
+              onClick={() => setHighquality(!highquality)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                highquality
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'glass-panel text-white/60 hover:text-white border-white/10'
+              }`}
+            >
+              ✨ {highquality ? '精品歌单' : '切换精品'}
+            </button>
+          }
+        />
 
         {/* 分类标签（catalogue 真实数据） */}
         <motion.div

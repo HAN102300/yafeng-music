@@ -66,7 +66,7 @@ export default function ArtistDetailPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden ring-4 ring-purple-500/40 shadow-2xl shadow-purple-500/20 relative shrink-0"
+            className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden ring-4 ring-pri-mix-45 shadow-2xl  relative shrink-0"
           >
             <Image src={artist.avatar} alt={artist.name} fill sizes="208px" className="object-cover" />
           </motion.div>

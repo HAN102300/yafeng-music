@@ -12,7 +12,7 @@ import { fetchHotArtists, searchArtists, ApiError } from '@/lib/api';
 import type { NetEaseArtist } from '@/lib/server/netEase';
 import ChromaGrid, { type ChromaItem } from '@/components/ui/reactbits/ChromaGrid';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingBlock, ErrorBlock } from '@/components/ui/StateViews';
 
 const PAGE_SIZE = 30;
@@ -82,43 +82,39 @@ export default function SingerPage() {
 
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
-      <Sparkles density={20} color="#ec4899" className="opacity-15" />
+      <Sparkles density={20} color="var(--color-primary)" className="opacity-15" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* 页面标题 + 搜索 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 flex flex-wrap items-end justify-between gap-4"
-        >
-          <div>
-            <ShinyText text="热门歌手" speed={3} className="text-4xl font-bold" shineColor="#fbcfe8" color="#ec4899" />
-            <p className="text-white/50 mt-1">真实曲库歌手 · 点击进入歌手主页聆听</p>
-          </div>
-          <form onSubmit={handleSearch} className="glass-panel px-4 py-2.5 flex items-center gap-2 w-64">
-            <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索歌手..."
-              className="bg-transparent text-sm text-white placeholder-white/40 w-full outline-none"
-            />
-            {searchResults && (
-              <button
-                type="button"
-                onClick={() => {
-                  setKeyword('');
-                  setSearchResults(null);
-                }}
-                className="text-xs text-white/40 hover:text-white flex-shrink-0"
-              >
-                ✕
-              </button>
-            )}
-          </form>
-        </motion.div>
+        <PageHeader
+          title="热门歌手"
+          subtitle="真实曲库歌手 · 点击进入歌手主页聆听"
+          action={
+            <form onSubmit={handleSearch} className="glass-panel px-4 py-2.5 flex items-center gap-2 w-64">
+              <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="搜索歌手..."
+                className="bg-transparent text-sm text-white placeholder-white/40 w-full outline-none"
+              />
+              {searchResults && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyword('');
+                    setSearchResults(null);
+                  }}
+                  className="text-xs text-white/40 hover:text-white flex-shrink-0"
+                >
+                  ✕
+                </button>
+              )}
+            </form>
+          }
+        />
 
         {error && <ErrorBlock message={error} onRetry={() => loadPage(0, false)} />}
         {loading && !error && <LoadingBlock label="正在加载歌手..." />}

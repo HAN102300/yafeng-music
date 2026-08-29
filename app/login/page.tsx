@@ -150,7 +150,7 @@ export default function LoginPage() {
                     className="w-full h-full rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-3"
                   >
                     {qrState === 'loading' && (
-                      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-purple-400 animate-spin" />
+                      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-acc animate-spin" />
                     )}
                     {qrState === 'success' && <div className="text-5xl">🎉</div>}
                     {qrState === 'expired' && <div className="text-5xl">⏰</div>}

@@ -13,6 +13,7 @@ import { useNcmProfile, clearLogin } from '@/lib/ncmAuth';
 import { fetchUserPlaylists } from '@/lib/api';
 import type { NetEasePlaylist } from '@/lib/server/netEase';
 import { toast } from '@/lib/toast';
+import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 
 const navLinks = [
   { href: '/', label: '首页', icon: '🏠' },
@@ -147,7 +148,9 @@ export default function Navbar() {
           </div>
 
           {/* 用户区域 */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeSwitcher />
+
             <Link
               href="/likes"
               className="hidden md:flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
@@ -161,7 +164,7 @@ export default function Navbar() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-purple-500/50 relative bg-white/10">
+                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-pri-mix-45 relative bg-white/10">
                     <Image src={profile.avatarUrl} alt={profile.nickname} width={32} height={32} className="object-cover" />
                   </div>
                   <span className="text-sm font-medium text-white max-w-20 truncate hidden sm:block">

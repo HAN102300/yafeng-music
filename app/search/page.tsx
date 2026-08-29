@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { searchSongs, searchArtists, searchPlaylists, fetchSearchHot, toTrack, ApiError } from '@/lib/api';
 import type { NetEaseSong, NetEaseArtist, NetEasePlaylist } from '@/lib/server/netEase';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { TrackList } from '@/components/ui/TrackList';
 import { ArtistCard } from '@/components/cards/ArtistCard';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
@@ -118,14 +118,11 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
-      <Sparkles density={20} color="#00d9f5" className="opacity-15" />
+      <Sparkles density={20} color="var(--color-primary)" className="opacity-15" />
 
       <div className="max-w-4xl mx-auto relative z-10">
         {/* 标题 */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
-          <ShinyText text="搜索音乐" speed={3} className="text-3xl md:text-4xl font-bold" shineColor="#a5f3fc" color="#22d3ee" />
-          <p className="text-white/40 mt-1 text-sm">全库搜索 · 单曲 / 歌手 / 歌单</p>
-        </motion.div>
+        <PageHeader center title="搜索音乐" subtitle="全库搜索 · 单曲 / 歌手 / 歌单" />
 
         {/* 搜索框 */}
         <motion.form
@@ -164,7 +161,7 @@ function SearchContent() {
               onClick={() => setType(t.id)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
                 type === t.id
-                  ? 'bg-white/10 text-cyan-300 border-cyan-500/40'
+                  ? 'bg-white/10 text-acc border-acc-mix-35'
                   : 'text-white/50 hover:text-white border-transparent hover:bg-white/5'
               }`}
             >
@@ -213,7 +210,7 @@ function SearchContent() {
                       onClick={() => handleKeyword(w)}
                       className="px-3 py-1.5 rounded-full text-xs glass-panel text-white/70 hover:text-white transition-colors"
                     >
-                      <span className={`mr-1 font-semibold ${i < 3 ? 'text-cyan-400' : 'text-white/30'}`}>{i + 1}</span>
+                      <span className={`mr-1 font-semibold ${i < 3 ? 'text-acc' : 'text-white/30'}`}>{i + 1}</span>
                       {w}
                     </button>
                   ))}
@@ -278,7 +275,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-cyan-400 animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-acc animate-spin" />
         </div>
       }
     >

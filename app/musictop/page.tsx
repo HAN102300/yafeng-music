@@ -13,7 +13,7 @@ import { fetchToplists, fetchPlaylistDetail, toTrack, ApiError } from '@/lib/api
 import type { NetEaseToplist, NetEaseSong } from '@/lib/server/netEase';
 import { useMusicStore } from '@/lib/store';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingBlock, ErrorBlock } from '@/components/ui/StateViews';
 import { formatPlayCount } from '@/lib/format';
 
@@ -76,10 +76,7 @@ function TopContent() {
   return (
     <div className="max-w-6xl mx-auto relative z-10">
       {/* 页面标题 */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <ShinyText text="排行榜" speed={3} className="text-4xl font-bold" shineColor="#fde68a" color="#f59e0b" />
-        <p className="text-white/50 mt-1">官方真实榜单 · 实时更新 · 点击整榜入队播放</p>
-      </motion.div>
+      <PageHeader title="排行榜" subtitle="官方真实榜单 · 实时更新 · 点击整榜入队播放" />
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* 左侧：榜单选择 */}
@@ -143,7 +140,7 @@ function TopContent() {
                       onClick={() => playQueueFrom(songs.map(toTrack), i)}
                       className={`w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all group border ${
                         isCurrent
-                          ? 'bg-white/10 border-purple-500/30 shadow-lg shadow-purple-500/10'
+                          ? 'bg-white/10 border-pri-mix-45 shadow-lg'
                           : 'border-transparent hover:bg-white/5'
                       }`}
                     >
@@ -170,9 +167,9 @@ function TopContent() {
                         {isCurrent && isPlaying && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <div className="flex items-end gap-0.5 h-4">
-                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '60%' }} />
-                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                              <div className="w-0.5 bg-purple-400 rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
+                              <div className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '60%' }} />
+                              <div className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                              <div className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
                             </div>
                           </div>
                         )}
@@ -180,7 +177,7 @@ function TopContent() {
 
                       {/* 信息 */}
                       <div className="flex-1 min-w-0">
-                        <p className={`font-medium truncate flex items-center gap-1.5 ${isCurrent ? 'text-purple-300' : 'text-white'}`}>
+                        <p className={`font-medium truncate flex items-center gap-1.5 ${isCurrent ? 'text-acc' : 'text-white'}`}>
                           <span className="truncate">{song.name}</span>
                           {song.fee > 0 && (
                             <span className="px-1.5 py-px rounded text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
@@ -219,7 +216,7 @@ function TopContent() {
 export default function MusicTopPage() {
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
-      <Sparkles density={20} color="#f59e0b" className="opacity-15" />
+      <Sparkles density={20} color="var(--color-primary)" className="opacity-15" />
       <Suspense
         fallback={
           <div className="flex justify-center py-20">

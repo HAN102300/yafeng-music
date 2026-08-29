@@ -4,11 +4,10 @@
  * 我的喜欢页（API 化重构版）
  * 收藏数据为完整 Track 快照（likedTracks），本地/在线歌都能恢复展示。
  */
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useMusicStore } from '@/lib/store';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
-import ShinyText from '@/components/ui/reactbits/ShinyText';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { TrackList } from '@/components/ui/TrackList';
 import { EmptyBlock } from '@/components/ui/StateViews';
 
@@ -17,13 +16,10 @@ export default function LikesPage() {
 
   return (
     <div className="min-h-screen py-8 px-4 md:px-8 relative">
-      <Sparkles density={20} color="#f43f5e" className="opacity-15" />
+      <Sparkles density={20} color="var(--color-primary)" className="opacity-15" />
 
       <div className="max-w-5xl mx-auto relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <ShinyText text="我的喜欢" speed={3} className="text-4xl font-bold" shineColor="#fda4af" color="#f43f5e" />
-          <p className="text-white/50 mt-2">已收藏 {likedTracks.length} 首歌曲</p>
-        </motion.div>
+        <PageHeader title="我的喜欢" subtitle={`已收藏 ${likedTracks.length} 首歌曲`} />
 
         {likedTracks.length === 0 ? (
           <EmptyBlock icon="💗" title="还没有喜欢的歌曲" desc="在任意歌曲行或播放条点击 ♥ 即可收藏">

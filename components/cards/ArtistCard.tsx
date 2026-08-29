@@ -17,7 +17,7 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
       onClick={onClick}
       className="group flex flex-col items-center cursor-pointer"
     >
-      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-purple-400 transition-all relative bg-white/5">
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-acc transition-all relative bg-white/5">
         <Image
           src={artist.avatar}
           alt={artist.name}

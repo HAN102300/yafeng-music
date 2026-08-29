@@ -7,30 +7,35 @@
    设计系统：渐变艺术风 + 玻璃拟态
    ============================================ */
 
-/* --- CSS 设计令牌 --- */
+/* --- CSS 设计令牌（默认主题：星云幻紫，其余主题见 [data-theme] 块） --- */
 :root {
   /* 主色 - 可由主题引擎动态修改 */
-  --color-primary: #667eea;
-  --color-primary-light: #764ba2;
-  --color-secondary: #f093fb;
-  --color-accent: #00f5a0;
-  --color-accent-blue: #00d9f5;
+  --color-primary: #8b5cf6;
+  --color-primary-light: #d946ef;
+  --color-secondary: #f0abfc;
+  --color-accent: #22d3ee;
+  --color-accent-blue: #22d3ee;
 
   /* 深色背景 */
-  --color-dark-base: #0c0c1d;
+  --color-dark-base: #0a0a1a;
   --color-dark-mid: #1a1a3e;
   --color-dark-light: #2d1b4e;
 
+  /* Aurora 三段色（Hero 背景） */
+  --color-aurora-1: #5227ff;
+  --color-aurora-2: #a855f7;
+  --color-aurora-3: #ec4899;
+
   /* 渐变 - 可由主题引擎动态修改 */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-dark: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #2d1b4e 100%);
-  --gradient-accent: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
-  --gradient-mesh: radial-gradient(at 40% 20%, #667eea 0px, transparent 50%),
-                   radial-gradient(at 80% 0%, #764ba2 0px, transparent 50%),
-                   radial-gradient(at 0% 50%, #f093fb 0px, transparent 50%),
-                   radial-gradient(at 80% 50%, #00f5a0 0px, transparent 50%),
-                   radial-gradient(at 0% 100%, #00d9f5 0px, transparent 50%);
+  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+  --gradient-secondary: linear-gradient(135deg, #22d3ee 0%, #8b5cf6 100%);
+  --gradient-dark: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #2d1b4e 100%);
+  --gradient-accent: linear-gradient(135deg, #22d3ee 0%, #8b5cf6 100%);
+  --gradient-mesh: radial-gradient(at 40% 20%, #8b5cf6 0px, transparent 50%),
+                   radial-gradient(at 80% 0%, #d946ef 0px, transparent 50%),
+                   radial-gradient(at 0% 50%, #f0abfc 0px, transparent 50%),
+                   radial-gradient(at 80% 50%, #22d3ee 0px, transparent 50%),
+                   radial-gradient(at 0% 100%, #8b5cf6 0px, transparent 50%);
 
   /* 玻璃拟态 */
   --glass-bg: rgba(255, 255, 255, 0.05);
@@ -45,9 +50,9 @@
   --color-text-muted: rgba(255, 255, 255, 0.4);
 
   /* 发光 - 可由主题引擎动态修改 */
-  --glow-primary: 0 0 20px rgba(102, 126, 234, 0.4);
-  --glow-accent: 0 0 20px rgba(0, 245, 160, 0.3);
-  --glow-pink: 0 0 20px rgba(240, 147, 251, 0.3);
+  --glow-primary: 0 0 20px rgba(139, 92, 246, 0.4);
+  --glow-accent: 0 0 20px rgba(34, 211, 238, 0.3);
+  --glow-pink: 0 0 20px rgba(217, 70, 239, 0.3);
 
   /* 圆角 */
   --radius-sm: 8px;
@@ -61,9 +66,101 @@
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ============================================
+   主题切换（[data-theme] 变量集，与 lib/themes.ts 对应）
+   ============================================ */
+
+/* 落日汽水 */
+[data-theme='sunset'] {
+  --color-primary: #fb7185;
+  --color-primary-light: #fb923c;
+  --color-secondary: #fed7aa;
+  --color-accent: #fde047;
+  --color-accent-blue: #fb923c;
+  --color-dark-base: #170d12;
+  --color-dark-mid: #2a1420;
+  --color-dark-light: #3d1c1e;
+  --color-aurora-1: #f43f5e;
+  --color-aurora-2: #fb923c;
+  --color-aurora-3: #fbbf24;
+  --gradient-primary: linear-gradient(135deg, #fb7185 0%, #fb923c 100%);
+  --gradient-secondary: linear-gradient(135deg, #fde047 0%, #fb7185 100%);
+  --gradient-dark: linear-gradient(135deg, #170d12 0%, #2a1420 50%, #3d1c1e 100%);
+  --gradient-accent: linear-gradient(135deg, #fde047 0%, #fb923c 100%);
+  --glow-primary: 0 0 20px rgba(251, 113, 133, 0.4);
+  --glow-accent: 0 0 20px rgba(253, 224, 71, 0.3);
+  --glow-pink: 0 0 20px rgba(251, 146, 60, 0.3);
+}
+
+/* 薄荷苏打 */
+[data-theme='mint'] {
+  --color-primary: #2dd4bf;
+  --color-primary-light: #34d399;
+  --color-secondary: #a7f3d0;
+  --color-accent: #a3e635;
+  --color-accent-blue: #2dd4bf;
+  --color-dark-base: #071512;
+  --color-dark-mid: #0e2620;
+  --color-dark-light: #123a2c;
+  --color-aurora-1: #14b8a6;
+  --color-aurora-2: #34d399;
+  --color-aurora-3: #a3e635;
+  --gradient-primary: linear-gradient(135deg, #2dd4bf 0%, #34d399 100%);
+  --gradient-secondary: linear-gradient(135deg, #a3e635 0%, #2dd4bf 100%);
+  --gradient-dark: linear-gradient(135deg, #071512 0%, #0e2620 50%, #123a2c 100%);
+  --gradient-accent: linear-gradient(135deg, #a3e635 0%, #2dd4bf 100%);
+  --glow-primary: 0 0 20px rgba(45, 212, 191, 0.4);
+  --glow-accent: 0 0 20px rgba(163, 230, 53, 0.3);
+  --glow-pink: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+
+/* 蓝莓冰茶 */
+[data-theme='blueberry'] {
+  --color-primary: #6366f1;
+  --color-primary-light: #3b82f6;
+  --color-secondary: #a5b4fc;
+  --color-accent: #f472b6;
+  --color-accent-blue: #60a5fa;
+  --color-dark-base: #0a0e1f;
+  --color-dark-mid: #131a38;
+  --color-dark-light: #1b2650;
+  --color-aurora-1: #4f46e5;
+  --color-aurora-2: #3b82f6;
+  --color-aurora-3: #22d3ee;
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+  --gradient-secondary: linear-gradient(135deg, #f472b6 0%, #6366f1 100%);
+  --gradient-dark: linear-gradient(135deg, #0a0e1f 0%, #131a38 50%, #1b2650 100%);
+  --gradient-accent: linear-gradient(135deg, #f472b6 0%, #3b82f6 100%);
+  --glow-primary: 0 0 20px rgba(99, 102, 241, 0.4);
+  --glow-accent: 0 0 20px rgba(244, 114, 182, 0.3);
+  --glow-pink: 0 0 20px rgba(96, 165, 250, 0.3);
+}
+
+/* 樱花物语 */
+[data-theme='sakura'] {
+  --color-primary: #f472b6;
+  --color-primary-light: #c084fc;
+  --color-secondary: #fbcfe8;
+  --color-accent: #fb7185;
+  --color-accent-blue: #c084fc;
+  --color-dark-base: #150b13;
+  --color-dark-mid: #2a1330;
+  --color-dark-light: #3d1a3a;
+  --color-aurora-1: #ec4899;
+  --color-aurora-2: #c084fc;
+  --color-aurora-3: #fda4af;
+  --gradient-primary: linear-gradient(135deg, #f472b6 0%, #c084fc 100%);
+  --gradient-secondary: linear-gradient(135deg, #fb7185 0%, #f472b6 100%);
+  --gradient-dark: linear-gradient(135deg, #150b13 0%, #2a1330 50%, #3d1a3a 100%);
+  --gradient-accent: linear-gradient(135deg, #fb7185 0%, #c084fc 100%);
+  --glow-primary: 0 0 20px rgba(244, 114, 182, 0.4);
+  --glow-accent: 0 0 20px rgba(251, 113, 133, 0.3);
+  --glow-pink: 0 0 20px rgba(192, 132, 252, 0.3);
+}
+
 /* --- 动态主题支持 --- */
-[data-theme="dynamic"] {
-  transition: all 0.3s ease;
+[data-theme] {
+  transition: background-color 0.5s ease;
 }
 
 /* --- 基础重置 --- */
@@ -112,7 +209,7 @@ body {
 
 /* --- 选中文字样式 --- */
 ::selection {
-  background: rgba(102, 126, 234, 0.4);
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
   color: #fff;
 }
 
@@ -246,6 +343,40 @@ input {
 }
 
 /* ============================================
+   主题语义工具类（components 中的高亮/点缀统一走这里，
+   切换主题即全站变色）
+   ============================================ */
+.text-acc { color: var(--color-accent); }
+.text-pri { color: var(--color-primary-light); }
+
+.bg-pri-mix-10 { background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+.bg-pri-mix-18 { background-color: color-mix(in srgb, var(--color-primary) 18%, transparent); }
+.bg-pri-mix-30 { background-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.bg-acc-mix-12 { background-color: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.bg-acc-mix-20 { background-color: color-mix(in srgb, var(--color-accent) 20%, transparent); }
+.border-pri-mix-25 { border-color: color-mix(in srgb, var(--color-primary) 25%, transparent); }
+.border-pri-mix-45 { border-color: color-mix(in srgb, var(--color-primary) 45%, transparent); }
+.border-acc-mix-35 { border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+
+/* 环境光斑（根布局背景，颜色随主题） */
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+/* 区块标题左侧渐变条 */
+.section-bar {
+  width: 4px;
+  height: 1.4em;
+  border-radius: 9999px;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+
+/* ============================================
    动画关键帧
    ============================================ */
 
@@ -300,7 +431,7 @@ input {
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #00f5a0);
+  background: var(--gradient-primary);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -315,7 +446,7 @@ input {
 
 /* 动画发光边框 */
 .glow-border-animated::after {
-  background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #00f5a0, #667eea);
+  background: var(--gradient-primary);
   background-size: 300% 300%;
   animation: gradient-rotate 4s linear infinite;
 }
@@ -326,16 +457,34 @@ input {
   100% { background-position: 0% 50%; }
 }
 
+/* 流星（magicui Meteors） */
+@keyframes meteor-fall {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-620px);
+    opacity: 0;
+  }
+}
+
 /* 文字闪烁效果 */
 .text-shimmer {
   background: linear-gradient(
     to right,
-    #667eea 0%,
-    #764ba2 20%,
-    #f093fb 40%,
-    #00f5a0 60%,
-    #764ba2 80%,
-    #667eea 100%
+    var(--color-primary) 0%,
+    var(--color-primary-light) 20%,
+    var(--color-secondary) 40%,
+    var(--color-accent) 60%,
+    var(--color-primary-light) 80%,
+    var(--color-primary) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;

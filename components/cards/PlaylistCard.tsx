@@ -16,7 +16,7 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 cursor-pointer hover:border-purple-500/40 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10"
+      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 cursor-pointer hover:border-pri-mix-45 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20"
     >
       <div className="relative aspect-square overflow-hidden">
         <Image
@@ -37,7 +37,7 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
           {playlist.trackCount}首
         </div>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-12 h-12 rounded-full bg-purple-500/85 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-purple-500/40">
+          <div className="w-12 h-12 rounded-full bg-pri-mix-30 backdrop-blur-sm flex items-center justify-center shadow-lg ">
             <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>

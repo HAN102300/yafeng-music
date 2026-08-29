@@ -46,6 +46,10 @@ interface MusicStore {
   globalVizEnabled: boolean;
   setGlobalVizEnabled: (enabled: boolean) => void;
 
+  /** 站点主题 id（见 lib/themes.ts） */
+  themeId: string;
+  setThemeId: (id: string) => void;
+
   /** 音质档位 / 倍速 / 定时关闭（绝对时间戳 ms，null=未开启） */
   quality: SongQuality;
   setQuality: (q: SongQuality) => void;
@@ -102,6 +106,9 @@ export const useMusicStore = create<MusicStore>()(
       setBarHidden: (hidden: boolean) => set({ barHidden: hidden }),
       globalVizEnabled: true,
       setGlobalVizEnabled: (enabled: boolean) => set({ globalVizEnabled: enabled }),
+
+      themeId: 'nebula',
+      setThemeId: (id: string) => set({ themeId: id }),
 
       quality: 'standard',
       setQuality: (q: SongQuality) => set((s) => ({ quality: q, srcEpoch: s.srcEpoch + 1 })),
@@ -253,6 +260,7 @@ export const useMusicStore = create<MusicStore>()(
         history: state.history,
         barHidden: state.barHidden,
         globalVizEnabled: state.globalVizEnabled,
+        themeId: state.themeId,
         quality: state.quality,
         playbackRate: state.playbackRate,
       }),

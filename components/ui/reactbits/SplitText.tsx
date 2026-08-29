@@ -58,7 +58,9 @@ const SplitText: React.FC<SplitTextProps> = ({
           onAnimationComplete={
             index === segments.length - 1 ? onLetterAnimationComplete : undefined
           }
-          className="inline-block will-change-transform"
+          className="inline-block"
+          // 注意：不要加 will-change-transform——它与父级 background-clip:text 组合
+          // 会让字符独立成合成层，导致渐变文字不渲染（透明字形）
         >
           {segment === ' ' ? '\u00A0' : segment}
           {splitType === 'words' && index < segments.length - 1 && '\u00A0'}

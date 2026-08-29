@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 export function LoadingBlock({ label = '加载中...' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-purple-400 animate-spin" />
+      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-acc animate-spin" />
       <p className="text-sm text-white/40">{label}</p>
     </div>
   );

@@ -139,10 +139,12 @@ const ChromaGrid: React.FC<ChromaGridProps> = ({
               className="w-full aspect-square object-cover rounded-[10px]"
             />
           </div>
-          <footer className="relative z-10 p-3 text-white font-sans grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
-            <h3 className="m-0 text-[1.05rem] font-semibold">{c.title}</h3>
-            {c.handle && <span className="text-[0.95rem] opacity-80 text-right">{c.handle}</span>}
-            <p className="m-0 text-[0.85rem] opacity-85">{c.subtitle}</p>
+          <footer className="relative z-10 p-3 text-white font-sans">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="m-0 text-[1.05rem] font-semibold truncate">{c.title}</h3>
+              {c.handle && <span className="text-[0.8rem] opacity-80 text-right truncate flex-shrink-0">{c.handle}</span>}
+            </div>
+            <p className="m-0 text-[0.8rem] opacity-85 truncate mt-1">{c.subtitle}</p>
           </footer>
         </article>
       ))}

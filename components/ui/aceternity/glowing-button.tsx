@@ -25,7 +25,7 @@ export function GlowingButton({
     lg: 'px-8 py-4 text-lg',
   };
   const variantStyles = {
-    primary: 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40',
+    primary: 'bg-gradient-primary text-white shadow-lg hover:brightness-110',
     secondary: 'bg-white/10 text-white backdrop-blur-sm border border-white/20 hover:bg-white/20',
     outline: 'border-2 border-violet-500 text-violet-400 hover:bg-violet-500/10',
   };

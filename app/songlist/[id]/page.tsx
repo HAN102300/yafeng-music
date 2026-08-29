@@ -92,7 +92,7 @@ export default function PlaylistDetailPage() {
             className="flex-1 text-center md:text-left"
           >
             <p className="text-xs uppercase tracking-widest text-white/40 mb-2">歌单</p>
-            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3">{meta.name}</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 break-words">{meta.name}</h1>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-white/50 mb-3">
               {meta.creator && <span>创建者：{meta.creator}</span>}
               <span className="flex items-center gap-1">

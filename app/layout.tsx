@@ -6,6 +6,7 @@ import GlobalAudioEngine from '@/components/player/GlobalAudioEngine';
 import { GlobalVisualizerBackground } from '@/components/visualizer/GlobalVisualizerBackground';
 import SmoothScroll from '@/components/animations/SmoothScroll';
 import Toast from '@/components/ui/Toast';
+import ThemeSync from '@/components/ui/ThemeSync';
 
 export const metadata: Metadata = {
   title: '雅枫音乐 - 聆听美好',
@@ -19,14 +20,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body className="bg-[#0a0a1a] min-h-screen text-white antialiased">
-        {/* 静态底色光斑（全局可视化背景之下的兜底氛围） */}
+    <html lang="zh-CN" data-theme="nebula" suppressHydrationWarning>
+      <body className="bg-[var(--color-dark-base)] min-h-screen text-white antialiased">
+        {/* 静态底色光斑（全局可视化背景之下的兜底氛围，颜色随主题） */}
         <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-[100px]" />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-600/5 rounded-full blur-[80px]" />
+          <div className="ambient-orb w-96 h-96 top-0 left-1/4 opacity-[0.08]" />
+          <div className="ambient-orb w-80 h-80 bottom-1/4 right-1/4 opacity-[0.06]" />
+          <div className="ambient-orb w-64 h-64 top-1/2 left-1/2 opacity-[0.04]" />
         </div>
+
+        {/* 主题同步（data-theme 应用） */}
+        <ThemeSync />
 
         {/* 全局音乐驱动背景可视化（封面取色氛围 + 全屏场景 + 可读性遮罩） */}
         <GlobalVisualizerBackground />

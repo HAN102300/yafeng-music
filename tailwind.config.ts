@@ -9,28 +9,28 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#667eea',
-          light: '#764ba2',
+          DEFAULT: 'var(--color-primary)',
+          light: 'var(--color-primary-light)',
         },
         accent: {
-          DEFAULT: '#00f5a0',
-          blue: '#00d9f5',
+          DEFAULT: 'var(--color-accent)',
+          blue: 'var(--color-accent-blue)',
         },
         neon: {
-          pink: '#f093fb',
+          pink: 'var(--color-secondary)',
           red: '#f5576c',
         },
         dark: {
-          base: '#0c0c1d',
-          mid: '#1a1a3e',
-          light: '#2d1b4e',
+          base: 'var(--color-dark-base)',
+          mid: 'var(--color-dark-mid)',
+          light: 'var(--color-dark-light)',
         },
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'gradient-secondary': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        'gradient-dark': 'linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #2d1b4e 100%)',
-        'gradient-accent': 'linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%)',
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-secondary': 'var(--gradient-secondary)',
+        'gradient-dark': 'var(--gradient-dark)',
+        'gradient-accent': 'var(--gradient-accent)',
       },
       backdropBlur: {
         glass: '20px',
@@ -40,8 +40,8 @@ const config: Config = {
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.37)',
-        'glow': '0 0 20px rgba(0, 245, 160, 0.3)',
-        'glow-pink': '0 0 20px rgba(240, 147, 251, 0.3)',
+        'glow': 'var(--glow-primary)',
+        'glow-pink': 'var(--glow-pink)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

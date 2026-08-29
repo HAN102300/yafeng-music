@@ -49,7 +49,7 @@ export function PlayerSettingsMenu({ onClose }: PlayerSettingsMenuProps) {
               }}
               className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                 quality === opt.id
-                  ? 'bg-purple-500/25 text-purple-200 border-purple-500/50'
+                  ? 'bg-pri-mix-18 text-white border-pri-mix-45'
                   : 'text-white/50 hover:text-white border-white/10 hover:bg-white/5'
               }`}
             >
@@ -72,7 +72,7 @@ export function PlayerSettingsMenu({ onClose }: PlayerSettingsMenuProps) {
               }}
               className={`px-1 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
                 playbackRate === r
-                  ? 'bg-cyan-500/25 text-cyan-200 border-cyan-500/50'
+                  ? 'bg-acc-mix-20 text-white border-acc-mix-35'
                   : 'text-white/50 hover:text-white border-white/10 hover:bg-white/5'
               }`}
             >
