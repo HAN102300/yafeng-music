@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useMusicStore } from '@/lib/store';
 import { useLyrics } from '@/hooks/useLyrics';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { findLyricIndex } from '@/lib/lyrics';
 
@@ -16,6 +17,7 @@ interface LyricsOverlayProps {
 }
 
 export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
+  useBodyScrollLock(true);
   const currentSong = useMusicStore((s) => s.currentSong);
   const seekTo = useMusicStore((s) => s.seekTo);
   const lines = useLyrics(currentSong?.lyricUrl, currentSong?.neteaseId);
@@ -97,7 +99,7 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
       {/* 滚动歌词 */}
       <div
         ref={containerRef}
-        className="max-h-[46vh] overflow-y-auto px-6 py-6 space-y-3 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+        className="max-h-[46vh] overflow-y-auto overscroll-contain px-6 py-6 space-y-3 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         {lines.length === 0 ? (
           <div className="text-center py-10 text-white/30 text-sm">

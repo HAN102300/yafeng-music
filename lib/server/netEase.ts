@@ -45,6 +45,20 @@ export interface NetEasePlaylist {
   playCount: number;
   trackCount: number;
   creator?: string;
+  /** 创建者用户 id（区分自己创建/收藏的歌单） */
+  creatorId?: number;
+  description?: string;
+}
+
+/** 专辑（归一化） */
+export interface NetEaseAlbum {
+  id: number;
+  name: string;
+  cover: string;
+  artist?: string;
+  company?: string;
+  /** 出版毫秒时间戳 */
+  publishTime?: number;
   description?: string;
 }
 
@@ -257,7 +271,7 @@ interface RawPlaylist {
   playCount?: number;
   trackCount?: number;
   description?: string;
-  creator?: { nickname?: string };
+  creator?: { nickname?: string; userId?: number };
   /** personalized 接口字段 */
   picUrl?: string;
   songCount?: number;
@@ -271,6 +285,7 @@ function mapPlaylist(p: RawPlaylist): NetEasePlaylist {
     playCount: p.playCount ?? 0,
     trackCount: p.trackCount ?? p.songCount ?? 0,
     creator: p.creator?.nickname,
+    creatorId: p.creator?.userId,
     description: p.description,
   };
 }
@@ -532,9 +547,9 @@ export async function searchPlaylistsNetEase(
 
 // ---------- 扫码登录 ----------
 
-/** 生成扫码登录 unikey */
+/** 生成扫码登录 unikey（type:3 为新版 App 扫码渠道，与官方 App 行为一致） */
 export async function createQrKeyNetEase(): Promise<string | null> {
-  const json = await weapiPost<{ unikey?: string }>('/weapi/login/qrcode/unikey', { type: '1' });
+  const json = await weapiPost<{ unikey?: string }>('/weapi/login/qrcode/unikey', { type: 3 });
   return json?.unikey ?? null;
 }
 
@@ -542,7 +557,7 @@ export async function createQrKeyNetEase(): Promise<string | null> {
 export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult> {
   let res: Response;
   try {
-    const { params, encSecKey } = weapi({ key, type: '1' });
+    const { params, encSecKey } = weapi({ key, type: 3 });
     const body = new URLSearchParams({ params, encSecKey });
     res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/client/login', {
       method: 'POST',
@@ -622,4 +637,60 @@ export async function getUserPlaylistsNetEase(
     musicU
   );
   return (json?.playlist ?? []).map(mapPlaylist);
+}
+
+// ---------- 专辑 ----------
+
+interface RawAlbum {
+  id: number;
+  name?: string;
+  picUrl?: string;
+  company?: { name?: string } | null;
+  artist?: { name?: string };
+  artists?: { name?: string }[];
+  publishTime?: number;
+  description?: string;
+}
+
+function mapAlbum(a: RawAlbum): NetEaseAlbum {
+  const company = typeof a.company === 'string' ? a.company : a.company?.name;
+  return {
+    id: a.id,
+    name: a.name ?? '未知专辑',
+    cover: toHttps(a.picUrl || '/images/播放.png'),
+    artist: a.artist?.name ?? ((a.artists ?? []).map((x) => x.name).filter(Boolean).join(' / ') || undefined),
+    company: company || undefined,
+    publishTime: a.publishTime,
+    description: a.description,
+  };
+}
+
+/** 当前账号收藏的专辑（需登录） */
+export async function getAlbumSublistNetEase(
+  musicU?: string | null,
+  limit = 30,
+  offset = 0
+): Promise<{ albums: NetEaseAlbum[]; more: boolean }> {
+  const json = await weapiPost<{ data?: { albums?: RawAlbum[]; hasMore?: boolean } }>(
+    '/weapi/album/sublist',
+    { limit, offset, total: true, csrf_token: '' },
+    musicU
+  );
+  const albums = (json?.data?.albums ?? []).map(mapAlbum);
+  return { albums, more: !!json?.data?.hasMore };
+}
+
+/** 专辑详情 + 全部曲目 */
+export async function getAlbumNetEase(
+  id: number,
+  musicU?: string | null
+): Promise<{ album: NetEaseAlbum; songs: NetEaseSong[] } | null> {
+  const json = await weapiPost<{
+    album?: RawAlbum & { songs?: RawSongV3[] };
+    songs?: RawSongV3[];
+  }>(`/weapi/v1/album/${id}`, { id, n: 1000, csrf_token: '' }, musicU);
+  const raw = json?.album;
+  if (!raw) return null;
+  const songs = (raw.songs ?? json?.songs ?? []).map(mapSongV3);
+  return { album: mapAlbum(raw), songs };
 }

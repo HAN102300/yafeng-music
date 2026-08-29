@@ -188,7 +188,15 @@ export default function Navbar() {
                         <p className="text-sm font-medium text-white truncate">{profile.nickname}</p>
                         <p className="text-xs text-white/40">网易云音乐账号</p>
                       </div>
-                      <div className="max-h-56 overflow-y-auto py-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+                      <Link
+                        href="/mine"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-sm text-white hover:bg-white/10 transition-colors border-b border-white/10"
+                      >
+                        <span>🎧 我的音乐</span>
+                        <span className="text-white/30 text-xs">歌单 · 专辑 →</span>
+                      </Link>
+                      <div className="max-h-56 overflow-y-auto overscroll-contain py-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
                         <p className="px-3 py-1.5 text-xs text-white/30">我的歌单</p>
                         {userPlaylists.length === 0 && (
                           <p className="px-3 py-2 text-xs text-white/30">加载中...</p>

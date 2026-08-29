@@ -4,6 +4,7 @@
  * 播放队列抽屉：当前队列列表（点击切歌 / 移除单曲 / 清空队列）
  */
 import Image from 'next/image';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { motion } from 'framer-motion';
 import { useMusicStore } from '@/lib/store';
 import { formatDuration } from '@/lib/format';
@@ -13,6 +14,8 @@ interface QueueDrawerProps {
 }
 
 export function QueueDrawer({ onClose }: QueueDrawerProps) {
+  // 弹层期间锁定背景页面滚动，避免滚轮穿透
+  useBodyScrollLock(true);
   const playlist = useMusicStore((s) => s.playlist);
   const currentSong = useMusicStore((s) => s.currentSong);
   const isPlaying = useMusicStore((s) => s.isPlaying);
@@ -74,7 +77,7 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
         </div>
 
         {/* 列表 */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {playlist.length === 0 ? (
             <div className="text-center py-20 text-white/30 text-sm">队列是空的</div>
           ) : (

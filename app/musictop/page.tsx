@@ -78,9 +78,9 @@ function TopContent() {
       {/* 页面标题 */}
       <PageHeader title="排行榜" subtitle="官方真实榜单 · 实时更新 · 点击整榜入队播放" />
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* 左侧：榜单选择 */}
-        <div className="lg:w-64 shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[70vh] pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+        {/* 左侧：榜单选择（lg 桌面端 sticky 固定，仅右侧曲目滚动） */}
+        <div className="lg:w-64 lg:sticky lg:top-24 shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[calc(100vh-140px)] pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {toplists.map((t) => (
             <button
               key={t.id}

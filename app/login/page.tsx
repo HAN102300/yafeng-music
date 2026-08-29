@@ -139,7 +139,12 @@ export default function LoginPage() {
                     exit={{ opacity: 0, scale: 0.92 }}
                     className="w-full h-full bg-white rounded-2xl p-3 flex items-center justify-center"
                   >
-                    <QRCodeSVG value={unikey} size={184} level="M" />
+                    {/* App 只识别官方登录 URL 格式，裸 unikey 会提示"不支持的类型" */}
+                    <QRCodeSVG
+                      value={`https://music.163.com/login?codekey=${unikey}`}
+                      size={184}
+                      level="M"
+                    />
                   </motion.div>
                 ) : (
                   <motion.div

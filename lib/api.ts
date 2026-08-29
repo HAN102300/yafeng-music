@@ -9,6 +9,7 @@ import type {
   NetEaseSong,
   NetEasePlaylist,
   NetEaseArtist,
+  NetEaseAlbum,
   NetEaseToplist,
   SongUrlResult,
   SongQuality,
@@ -210,6 +211,19 @@ export async function fetchPersonalFM(): Promise<NetEaseSong[]> {
 export async function fetchUserPlaylists(uid: number): Promise<NetEasePlaylist[]> {
   const json = await apiFetch<{ playlists?: NetEasePlaylist[] }>(`/api/user-playlists?uid=${uid}`);
   return json.playlists ?? [];
+}
+
+// ---------- 专辑 ----------
+
+export async function fetchCollectedAlbums(): Promise<{ albums: NetEaseAlbum[]; more: boolean }> {
+  return apiFetch<{ albums: NetEaseAlbum[]; more: boolean }>('/api/album-sublist');
+}
+
+export async function fetchAlbumDetail(id: number): Promise<{
+  album: NetEaseAlbum;
+  songs: NetEaseSong[];
+}> {
+  return apiFetch(`/api/album?id=${id}`);
 }
 
 // ---------- 播放地址 / 歌词 ----------
