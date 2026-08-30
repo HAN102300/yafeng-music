@@ -222,6 +222,42 @@ export async function checkQrKey(
   );
 }
 
+export interface SmsSendResult {
+  sent: boolean;
+  /** 需要先识别图形验证码（风控兜底） */
+  needCaptcha?: boolean;
+  /** 图形验证码图（dataURL） */
+  captchaImage?: string;
+  message?: string;
+}
+
+/** 发送登录短信验证码；被要求图形验证码时先展示图片，识别结果随下一次请求带上 */
+export async function sendSmsCaptcha(phone: string, captcha?: string): Promise<SmsSendResult> {
+  return apiFetch<SmsSendResult>('/api/auth/sms-send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, captcha }),
+  });
+}
+
+/** 手机号 + 短信验证码登录，成功返回 { musicU } */
+export async function loginCellphone(
+  phone: string,
+  captcha: string
+): Promise<{ musicU?: string; message?: string }> {
+  return apiFetch<{ musicU?: string; message?: string }>('/api/auth/sms-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, captcha }),
+  });
+}
+
+/** 刷新图形验证码图 */
+export async function fetchCaptchaImage(): Promise<string | null> {
+  const json = await apiFetch<{ captcha?: string } | { error?: string }>('/api/auth/captcha-image');
+  return 'captcha' in json ? (json.captcha ?? null) : null;
+}
+
 export interface NcmAccount {
   userId: number;
   nickname: string;

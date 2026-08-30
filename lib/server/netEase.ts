@@ -682,6 +682,129 @@ export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { 
   return result;
 }
 
+// ---------- 手机验证码登录 ----------
+
+export interface SmsSendResult {
+  /** 短信是否已发出 */
+  sent: boolean;
+  /** 网易风控要求先识别图形验证码 */
+  needCaptcha?: boolean;
+  /** 图形验证码图（dataURL，直接用于 <img>） */
+  captchaImage?: string;
+  message?: string;
+}
+
+/** 获取图形验证码（发短信被风控要求时兜底），失败返回 null */
+export async function getCaptchaImageNetEase(): Promise<string | null> {
+  try {
+    const res = await upstreamFetch('https://music.163.com/api/captcha/get?ct=code&cp=web', {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { captcha?: string };
+    return json?.captcha ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 发送登录短信验证码（weapi，与网页端验证码登录同通道）。
+ * 上游风控要求图形验证码时返回 needCaptcha + 图片，用户识别后随下一次请求带上。
+ */
+export async function sendSmsCaptchaNetEase(
+  phone: string,
+  ctcode = '86',
+  captcha?: string
+): Promise<SmsSendResult> {
+  const { params, encSecKey } = weapi({
+    cellphone: phone,
+    ctcode,
+    ...(captcha ? { captcha } : {}),
+  });
+  let res: Response;
+  try {
+    res = await upstreamFetch('https://music.163.com/weapi/captcha/sent?ct=code&cp=web', {
+      method: 'POST',
+      headers: {
+        ...authHeaders(),
+        Origin: REFERER,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ params, encSecKey }),
+      cache: 'no-store',
+    });
+  } catch {
+    return { sent: false, message: '网络异常，请稍后重试' };
+  }
+  if (!res.ok) return { sent: false, message: '验证码发送失败，请稍后重试' };
+
+  const rawText = await res.text();
+  let body: { code?: number; sent?: boolean; message?: string; captcha?: string } = {};
+  try {
+    body = JSON.parse(rawText);
+  } catch {
+    /* body 非 JSON */
+  }
+
+  if (body.code === 200 && body.sent !== false) return { sent: true };
+  // 需要图形验证码：优先用上游直接返回的图，否则现场取一张
+  const image =
+    body.captcha && body.captcha.includes('base64') ? body.captcha : await getCaptchaImageNetEase();
+  if (image) {
+    return { sent: false, needCaptcha: true, captchaImage: image, message: body.message };
+  }
+  return { sent: false, message: body.message ?? '验证码发送失败，请稍后重试' };
+}
+
+/** 手机号 + 短信验证码登录（weapi login/cellphone），成功返回 MUSIC_U */
+export async function loginCellphoneNetEase(
+  phone: string,
+  captcha: string,
+  ctcode = '86'
+): Promise<{ musicU?: string; message?: string }> {
+  const { params, encSecKey } = weapi({
+    phone,
+    countrycode: ctcode,
+    captcha,
+    rememberLogin: 'true',
+  });
+  let res: Response;
+  try {
+    res = await upstreamFetch('https://music.163.com/weapi/login/cellphone', {
+      method: 'POST',
+      headers: {
+        ...authHeaders(),
+        Origin: REFERER,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ params, encSecKey }),
+      cache: 'no-store',
+    });
+  } catch {
+    return { message: '网络异常，请稍后重试' };
+  }
+
+  const rawText = await res.text();
+  const setCookieText =
+    typeof res.headers.getSetCookie === 'function'
+      ? res.headers.getSetCookie().join('; ')
+      : (res.headers.get('set-cookie') ?? '');
+  const musicU =
+    /MUSIC_U=([^;\s"']+)/.exec(rawText)?.[1] ??
+    /MUSIC_U=([^;\s"']+)/.exec(setCookieText)?.[1];
+  if (musicU) return { musicU };
+
+  let body: { message?: string } = {};
+  try {
+    body = JSON.parse(rawText);
+  } catch {
+    /* body 非 JSON */
+  }
+  return { message: body.message ?? '登录失败，请检查手机号与验证码' };
+}
+
 // ---------- 登录态能力 ----------
 
 /** 当前账号信息（nickname/avatar/userId），未登录返回 null */
