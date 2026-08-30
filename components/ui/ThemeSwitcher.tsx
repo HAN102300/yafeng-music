@@ -104,7 +104,11 @@ export default function ThemeSwitcher() {
               </span>
             </button>
 
-            <div className="max-h-72 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* data-lenis-prevent：滚轮事件绕过全局 Lenis，走容器原生滚动 */}
+            <div
+              data-lenis-prevent
+              className="max-h-72 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+            >
               <p className="px-3 pt-1.5 pb-1 text-xs text-white/30">🌙 深色</p>
               {darkThemes.map((t) => (
                 <ThemeChip

@@ -13,13 +13,10 @@ import { beatDetector, BeatState } from '@/lib/beatDetector';
 export interface FrameData {
   /** 频率数据 (0-255)，共享缓冲区，勿持有引用跨帧使用 */
   frequencyData: Uint8Array;
-  /** 波形数据 (0-255)，共享缓冲区 */
-  waveformData: Uint8Array;
   bass: number;
   mid: number;
   treble: number;
   energy: number;
-  volume: number;
   beat: BeatState;
   currentTime: number;
   duration: number;
@@ -36,17 +33,14 @@ class AudioEngine {
 
   // 预分配缓冲区（fftSize 256 → frequencyBinCount 128）
   private freqBuffer = new Uint8Array(128);
-  private waveBuffer = new Uint8Array(128);
 
   // 复用的帧对象，captureFrame 原地更新
   private frame: FrameData = {
     frequencyData: this.freqBuffer,
-    waveformData: this.waveBuffer,
     bass: 0,
     mid: 0,
     treble: 0,
     energy: 0,
-    volume: 0,
     beat: EMPTY_BEAT,
     currentTime: 0,
     duration: 0,
@@ -126,13 +120,12 @@ class AudioEngine {
     frame.isPlaying = !!audio && !audio.paused;
 
     if (!this.analyser) {
-      frame.bass = frame.mid = frame.treble = frame.energy = frame.volume = 0;
+      frame.bass = frame.mid = frame.treble = frame.energy = 0;
       frame.beat = EMPTY_BEAT;
       return frame;
     }
 
     this.analyser.getByteFrequencyData(this.freqBuffer as Uint8Array<ArrayBuffer>);
-    this.analyser.getByteTimeDomainData(this.waveBuffer as Uint8Array<ArrayBuffer>);
 
     // 三频段能量
     const data = this.freqBuffer;
@@ -151,15 +144,6 @@ class AudioEngine {
     frame.mid = midSum / (midEnd - bassEnd) / 255;
     frame.treble = trebleSum / (len - midEnd) / 255;
     frame.energy = (frame.bass + frame.mid + frame.treble) / 3;
-
-    // RMS 音量
-    const wave = this.waveBuffer;
-    let sum = 0;
-    for (let i = 0; i < wave.length; i++) {
-      const v = (wave[i] - 128) / 128;
-      sum += v * v;
-    }
-    frame.volume = Math.sqrt(sum / wave.length);
 
     // 节拍检测（BPM / 相位 / 置信度）
     frame.beat = beatDetector.process(frame.energy);

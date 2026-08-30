@@ -8,6 +8,7 @@
 import { useEffect, useRef } from 'react';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { readThemeColors, SceneThemeColors } from '@/lib/visualizer/themeColors';
+import { isIdleFrame, idleSpectrumAt } from '@/lib/visualizer/idleMotion';
 
 interface SpectrumVisualizerProps {
   width?: number;
@@ -57,11 +58,14 @@ export function SpectrumVisualizer({
     const step = Math.floor(data.length / barCount);
     const smooth = smoothRef.current;
     const peaks = peaksRef.current;
+    // 空闲兜底：暂停且静默时以伪频谱行波驱动
+    const idle = isIdleFrame(frame);
+    const tNow = performance.now() / 1000;
     const mainH = height * 0.62; // 主频谱区高度（下部 38% 留给镜像倒影）
     const maxBar = mainH * 0.92;
 
     for (let i = 0; i < barCount; i++) {
-      const raw = data[Math.floor(i * step)] / 255;
+      const raw = idle ? idleSpectrumAt(i / barCount, tNow) : data[Math.floor(i * step)] / 255;
       // 指数平滑：上升快、下降慢，视觉更丝滑
       const prev = smooth[i] ?? 0;
       smooth[i] = raw > prev ? prev + (raw - prev) * 0.55 : prev + (raw - prev) * 0.18;
@@ -85,8 +89,8 @@ export function SpectrumVisualizer({
       roundRect(ctx, x + 1, y, barWidth - 2, barHeight, Math.min(3, barWidth / 3));
       ctx.fill();
 
-      // 峰值帽（亮色小横条）
-      ctx.fillStyle = '#ffffff';
+      // 峰值帽（亮色小横条；accent 而非白色，浅色主题下同样可见）
+      ctx.fillStyle = accent;
       ctx.globalAlpha = 0.85;
       roundRect(ctx, x + 1, peakY, barWidth - 2, 2.5, 1);
       ctx.fill();

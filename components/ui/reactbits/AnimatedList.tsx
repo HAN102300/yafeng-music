@@ -134,6 +134,7 @@ function AnimatedList<T>({
     <div className={`relative w-full ${className}`}>
       <div
         ref={listRef}
+        data-lenis-prevent
         className="overflow-y-auto p-1 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-[4px]"
         style={{ maxHeight, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
         onScroll={handleScroll}

@@ -12,7 +12,6 @@ import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 import { CircularVisualizer } from '@/components/visualizer/CircularVisualizer';
 import { SpectrumVisualizer } from '@/components/visualizer/SpectrumVisualizer';
-import { WaveformVisualizer } from '@/components/visualizer/WaveformVisualizer';
 
 export interface SceneProps {
   coverUrl?: string;
@@ -71,10 +70,6 @@ function SpectrumScene() {
   return <SpectrumVisualizer width={600} height={220} barCount={64} />;
 }
 
-function WaveformScene() {
-  return <WaveformVisualizer width={600} height={220} />;
-}
-
 function R3FParticlesScene() {
   return <ParticleBackground className="absolute inset-0" particleCount={2000} />;
 }
@@ -101,7 +96,6 @@ export const SCENES: VisualizerScene[] = [
   { id: 'flow', name: '流光频谱', icon: '🌊', placement: 'fullscreen', quality: 'light', Component: FlowScene },
   { id: 'circular', name: '环形音浪', icon: '🔮', placement: 'center', quality: 'light', Component: CircularScene },
   { id: 'spectrum', name: '频谱分析', icon: '📊', placement: 'center', quality: 'light', Component: SpectrumScene },
-  { id: 'waveform', name: '波形律动', icon: '〰️', placement: 'center', quality: 'light', Component: WaveformScene },
   { id: 'particles', name: '粒子宇宙', icon: '✨', placement: 'fullscreen', quality: 'heavy', Component: R3FParticlesScene },
   { id: 'stardust', name: '星尘漂浮', icon: '🌌', placement: 'fullscreen', quality: 'heavy', Component: OglParticlesScene },
   { id: 'threads', name: '丝弦波动', icon: '🎻', placement: 'fullscreen', quality: 'heavy', Component: OglThreadsScene },

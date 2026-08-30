@@ -99,6 +99,7 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
       {/* 滚动歌词 */}
       <div
         ref={containerRef}
+        data-lenis-prevent
         className="max-h-[46vh] overflow-y-auto overscroll-contain px-6 py-6 space-y-3 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         {lines.length === 0 ? (

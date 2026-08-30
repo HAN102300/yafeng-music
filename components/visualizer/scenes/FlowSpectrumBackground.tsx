@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
+import { isIdleFrame, idleSpectrumAt } from '@/lib/visualizer/idleMotion';
 
 const BAR_COUNT = 84;
 const PRIMARY_REFRESH_FRAMES = 60;
@@ -121,6 +122,9 @@ export function FlowSpectrumBackground() {
     const freq = frame.frequencyData;
     const binPerBar = freq.length / BAR_COUNT;
     const bars = barsRef.current;
+    // 空闲兜底：暂停且静默时以伪频谱行波驱动
+    const idle = isIdleFrame(frame);
+    const tNow = performance.now() / 1000;
     const maxH = h * 0.52; // 更高
     const barW = w / BAR_COUNT;
 
@@ -129,7 +133,7 @@ export function FlowSpectrumBackground() {
       const start = Math.floor(i * binPerBar);
       const end = Math.floor((i + 1) * binPerBar);
       for (let j = start; j < Math.max(start + 1, end); j++) v = Math.max(v, freq[j] ?? 0);
-      const target = (v / 255) ** 1.32;
+      const target = idle ? idleSpectrumAt(i / BAR_COUNT, tNow) : (v / 255) ** 1.32;
       bars[i] += (target - bars[i]) * 0.28;
 
       const barH = bars[i] * maxH;

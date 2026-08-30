@@ -8,6 +8,7 @@
 import { useEffect, useRef } from 'react';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { readThemeColors, SceneThemeColors } from '@/lib/visualizer/themeColors';
+import { isIdleFrame, idleSpectrumAt } from '@/lib/visualizer/idleMotion';
 
 interface CircularVisualizerProps {
   size?: number;
@@ -72,6 +73,9 @@ export function CircularVisualizer({
     const barCount = 96;
     const { frequencyData } = frame;
     const step = Math.floor(frequencyData.length / barCount);
+    // 空闲兜底：暂停且静默时以伪频谱行波驱动，圆环不冻死
+    const idle = isIdleFrame(frame);
+    const tNow = performance.now() / 1000;
     const smooth = smoothRef.current;
     const peaks = peaksRef.current;
     // 内层环缓慢反向旋转
@@ -82,7 +86,7 @@ export function CircularVisualizer({
 
     // 绘制环形频谱：双层（外层主环 + 内层细环反向旋转）
     for (let i = 0; i < barCount; i++) {
-      const raw = frequencyData[Math.floor(i * step)] / 255;
+      const raw = idle ? idleSpectrumAt(i / barCount, tNow) : frequencyData[Math.floor(i * step)] / 255;
       const prev = smooth[i] ?? 0;
       smooth[i] = raw > prev ? prev + (raw - prev) * 0.5 : prev + (raw - prev) * 0.16;
       const value = smooth[i];
@@ -115,8 +119,9 @@ export function CircularVisualizer({
       const py = centerY + Math.sin(angle) * (r1 + peakLen + 4);
       ctx.beginPath();
       ctx.arc(px, py, Math.max(1.2, size / 300), 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.globalAlpha = 0.75;
+      // accent 而非白色：浅色主题下白点不可见
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = 0.9;
       ctx.fill();
       ctx.globalAlpha = 1;
 

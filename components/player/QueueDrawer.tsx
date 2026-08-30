@@ -76,8 +76,11 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
           </div>
         </div>
 
-        {/* 列表 */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        {/* 列表（data-lenis-prevent：lenis.stop() 会拦截所有滚轮，此标记让队列内滚动走原生） */}
+        <div
+          data-lenis-prevent
+          className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+        >
           {playlist.length === 0 ? (
             <div className="text-center py-20 text-white/30 text-sm">队列是空的</div>
           ) : (

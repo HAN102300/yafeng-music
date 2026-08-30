@@ -9,7 +9,7 @@
  * - 中央：封面圆环（点击切场景）+ 歌名/歌手 + 内嵌滚动歌词，垂直居中呼吸感布局
  * - 背景：所选场景即背景——
  *     · 全屏场景（流光频谱/粒子宇宙/星尘/丝弦/星际穿越）铺满视口
- *     · 中央场景（频谱/波形）渲染为全宽贴底的「声景地平线」，顶部渐隐融入黑暗
+ *     · 中央场景（频谱）渲染为全宽贴底的「声景地平线」，顶部渐隐融入黑暗
  *     · 环形音浪即中央圆环本身
  * - 底部：唯一一个悬浮玻璃控制舱（进度 + 模式/上一首/播放/下一首/喜欢）
  */
@@ -151,11 +151,7 @@ export default function VisualizerPage() {
                 'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 65%)',
             }}
           />
-          {scene.id !== 'circular' && (
-            <FullBleedScene
-              type={scene.id === 'waveform' ? 'waveform' : 'spectrum'}
-            />
-          )}
+          {scene.id !== 'circular' && <FullBleedScene />}
         </>
       )}
 

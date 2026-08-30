@@ -80,7 +80,10 @@ function TopContent() {
 
       <div className="flex flex-col lg:flex-row gap-6 lg:flex-1 lg:min-h-0">
         {/* 左侧：榜单选择（lg 桌面端 sticky 固定，仅右侧曲目滚动） */}
-        <div className="lg:w-64 lg:h-full shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto overscroll-contain pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div
+          data-lenis-prevent
+          className="lg:w-64 lg:h-full shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto overscroll-contain pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+        >
           {toplists.map((t) => (
             <button
               key={t.id}
@@ -105,7 +108,10 @@ function TopContent() {
         </div>
 
         {/* 右侧：当前榜单（lg 独立滚动） */}
-        <div className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto overscroll-contain pr-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div
+          data-lenis-prevent
+          className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto overscroll-contain pr-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+        >
           {detailError && <ErrorBlock message={detailError} onRetry={() => activeId && loadChart(activeId)} />}
 
           {!detailError && songs.length === 0 && <LoadingBlock label="正在加载曲目..." />}
