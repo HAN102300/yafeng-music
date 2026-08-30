@@ -104,13 +104,44 @@ export async function fetchToplists(): Promise<NetEaseToplist[]> {
   return json.toplists ?? [];
 }
 
-/** 热歌榜前 N 首的 Track 列表（「开始聆听」等一键开播场景） */
+/** 「开始聆听」一键开播曲目：
+ * - 登录用户优先取每日推荐（个性化）
+ * - 游客从热歌/飙升/新歌三个官方榜随机选一，并 Fisher-Yates 洗牌，保证每次点都有新鲜曲序 */
 export async function fetchHotChartTracks(limit = 30): Promise<Track[]> {
+  // 登录态优先个性化
+  const musicU = typeof window !== 'undefined' ? localStorage.getItem('yafeng-ncm-music-u') : null;
+  if (musicU) {
+    try {
+      const daily = await fetchDailyRecommend();
+      if (daily.length > 0) return shuffle(daily.slice(0, limit).map(toTrack));
+    } catch {
+      /* 日推失败回退官方榜 */
+    }
+  }
+
   const toplists = await fetchToplists();
-  const hot = toplists.find((t) => t.name.includes('热歌')) ?? toplists[0];
-  if (!hot) throw new ApiError('榜单暂不可用', 'server');
-  const detail = await fetchPlaylistDetail(hot.id, limit);
-  return detail.songs.map(toTrack);
+  // 候选榜：热歌优先权重更高，其次飙升/新歌
+  const candidates = [
+    toplists.find((t) => t.name.includes('热歌')),
+    toplists.find((t) => t.name.includes('飙升')),
+    toplists.find((t) => t.name.includes('新歌')),
+  ].filter((t): t is NetEaseToplist => !!t);
+  const pick = candidates.length > 0
+    ? candidates[Math.floor(Math.random() * (Math.random() < 0.5 ? 1 : candidates.length))]
+    : toplists[0];
+  if (!pick) throw new ApiError('榜单暂不可用', 'server');
+  const detail = await fetchPlaylistDetail(pick.id, limit);
+  return shuffle(detail.songs.map(toTrack));
+}
+
+/** Fisher-Yates 洗牌（返回新数组） */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 // ---------- 歌单 ----------

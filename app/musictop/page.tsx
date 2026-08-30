@@ -74,13 +74,13 @@ function TopContent() {
     return <ErrorBlock message={error} onRetry={() => location.reload()} />;
 
   return (
-    <div className="max-w-6xl mx-auto relative z-10">
+    <div className="max-w-6xl mx-auto relative z-10 lg:h-full lg:flex lg:flex-col lg:w-full">
       {/* 页面标题 */}
       <PageHeader title="排行榜" subtitle="官方真实榜单 · 实时更新 · 点击整榜入队播放" />
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+      <div className="flex flex-col lg:flex-row gap-6 lg:flex-1 lg:min-h-0">
         {/* 左侧：榜单选择（lg 桌面端 sticky 固定，仅右侧曲目滚动） */}
-        <div className="lg:w-64 lg:sticky lg:top-24 shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[calc(100vh-140px)] pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="lg:w-64 lg:h-full shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto overscroll-contain pb-2 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {toplists.map((t) => (
             <button
               key={t.id}
@@ -104,8 +104,8 @@ function TopContent() {
           ))}
         </div>
 
-        {/* 右侧：当前榜单 */}
-        <div className="flex-1 min-w-0">
+        {/* 右侧：当前榜单（lg 独立滚动） */}
+        <div className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto overscroll-contain pr-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {detailError && <ErrorBlock message={detailError} onRetry={() => activeId && loadChart(activeId)} />}
 
           {!detailError && songs.length === 0 && <LoadingBlock label="正在加载曲目..." />}
@@ -215,7 +215,7 @@ function TopContent() {
 
 export default function MusicTopPage() {
   return (
-    <div className="min-h-screen py-8 px-4 md:px-8 relative">
+    <div className="min-h-screen py-8 px-4 md:px-8 relative lg:h-screen lg:overflow-hidden lg:flex lg:flex-col lg:py-6">
       <Sparkles density={20} color="var(--color-primary)" className="opacity-15" />
       <Suspense
         fallback={

@@ -547,26 +547,34 @@ export async function searchPlaylistsNetEase(
 
 // ---------- 扫码登录 ----------
 
-/** 生成扫码登录 unikey（type:3 为新版 App 扫码渠道，与官方 App 行为一致） */
+/** 生成扫码登录 unikey（type:3 为新版 App 扫码渠道）。
+ * 注意：与 NeteaseCloudMusicApi 权威实现一致，走「明文 /api/ 路径 + form 参数」，
+ * 而非 weapi 加密变体——802→803 的扫码会话转换依赖明文通道。 */
 export async function createQrKeyNetEase(): Promise<string | null> {
-  const json = await weapiPost<{ unikey?: string }>('/weapi/login/qrcode/unikey', { type: 3 });
+  const res = await upstreamFetch('https://music.163.com/api/login/qrcode/unikey', {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ type: String(3) }),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { unikey?: string };
   return json?.unikey ?? null;
 }
 
-/** 轮询扫码状态；授权成功时提取 MUSIC_U。
+/** 轮询扫码状态（明文 /api/ 路径 + form 参数）；授权成功时提取 MUSIC_U。
  * 提取策略与响应形态无关：在「响应 body 原文 + Set-Cookie 头」合并文本上正则搜索，
  * 兼容 cookie 为数组/字符串/嵌套 result 等各种返回形态。 */
 export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { dbg?: string }> {
   let res: Response;
   try {
-    const { params, encSecKey } = weapi({ key, type: 3 });
-    const body = new URLSearchParams({ params, encSecKey });
-    res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/client/login', {
+    const res_ = await upstreamFetch('https://music.163.com/api/login/qrcode/client/login', {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
+      body: new URLSearchParams({ key, type: String(3) }),
       cache: 'no-store',
     });
+    res = res_;
   } catch {
     return { code: 801 };
   }

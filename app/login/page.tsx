@@ -30,6 +30,8 @@ export default function LoginPage() {
 
   const [unikey, setUnikey] = useState<string | null>(null);
   const [qrState, setQrState] = useState<QrState>('loading');
+  // 实时诊断：最近一次轮询的上游状态摘要（扫码排障用，直接显示在界面上）
+  const [diag, setDiag] = useState<string>('');
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   // 生成代次令牌：StrictMode 双挂载/手动刷新时作废旧轮询，防止双 interval 与旧 key 覆盖状态
   const genRef = useRef(0);
@@ -40,6 +42,7 @@ export default function LoginPage() {
     const gen = ++genRef.current;
     setQrState('loading');
     setUnikey(null);
+    setDiag('');
     try {
       const key = await createQrKey();
       if (gen !== genRef.current) return;
@@ -53,6 +56,7 @@ export default function LoginPage() {
         }
         try {
           const res = await checkQrKey(key);
+          setDiag(`code=${res.code}${res.musicU ? ' · 已取到登录凭证' : ''}${res.dbg ? ` · ${res.dbg.slice(0, 80)}` : ''}`);
           if (res.code === 802) {
             setQrState('scanned');
           } else if (res.code === 803 && res.musicU) {
@@ -192,9 +196,15 @@ export default function LoginPage() {
               )}
             </div>
 
-            <p className={`text-sm mb-6 ${qrState === 'scanned' ? 'text-emerald-300' : 'text-white/50'}`}>
+            <p className={`text-sm mb-2 ${qrState === 'scanned' ? 'text-emerald-300' : 'text-white/50'}`}>
               {stateText[qrState]}
             </p>
+            {diag && qrState !== 'success' && (
+              <p className="text-[10px] text-white/25 mb-4 font-mono truncate max-w-xs mx-auto" title={diag}>
+                {diag}
+              </p>
+            )}
+            {qrState !== 'scanned' && <div className="mb-4" />}
 
             {(qrState === 'expired' || qrState === 'error') && (
               <button
