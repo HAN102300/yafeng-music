@@ -79,6 +79,12 @@ export default function LoginPage() {
           } else if (res.code === 800) {
             clearInterval(pollRef.current);
             setQrState('expired');
+          } else if (res.code === 8821) {
+            // 网易风控拦截（安全环境风险）：停止轮询，给出明确指引而非无限「已扫码」
+            clearInterval(pollRef.current);
+            console.warn('[qr] 8821 风控拦截，诊断:', res.dbg);
+            setQrState('error');
+            toast('网易云风控拦截了本次登录，请点「刷新二维码」重试；若反复出现请更换网络环境', 'error');
           }
         } catch {
           /* 单次轮询失败忽略，下一轮继续 */

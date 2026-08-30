@@ -547,34 +547,96 @@ export async function searchPlaylistsNetEase(
 
 // ---------- 扫码登录 ----------
 
-/** 生成扫码登录 unikey（type:3 为新版 App 扫码渠道）。
- * 注意：与 NeteaseCloudMusicApi 权威实现一致，走「明文 /api/ 路径 + form 参数」，
- * 而非 weapi 加密变体——802→803 的扫码会话转换依赖明文通道。 */
+/**
+ * 扫码会话 cookie 罐：unikey 创建 → 轮询确认全程保持同一「浏览器会话」。
+ * 真实网页流程中，打开登录页种下的 NMTID 等会随 unikey 创建与轮询一路携带；
+ * 缺少这层连续性会被网易风控拦截（8821「安全环境风险」），因此按 unikey
+ * 维护一个小罐，确认成功/二维码过期后即释放。
+ */
+const qrCookieJars = new Map<string, string>();
+
+/** 合并响应 Set-Cookie 到 cookie 罐字符串（仅取 name=value，忽略 Path/Expires 属性段） */
+function mergeCookies(jar: string, res: Response): string {
+  const parts = new Set(jar.split('; ').filter(Boolean));
+  const lines =
+    typeof res.headers.getSetCookie === 'function'
+      ? res.headers.getSetCookie()
+      : [res.headers.get('set-cookie') ?? ''];
+  for (const line of lines) {
+    const seg = line.split(';')[0].trim();
+    if (seg && seg.includes('=')) parts.add(seg);
+  }
+  return [...parts].join('; ');
+}
+
+/**
+ * 生成扫码登录 unikey。
+ * 通道与 music.163.com 网页端扫码完全一致：weapi 加密 + type:1（web 会话），
+ * 并先 GET 首页种 cookie、unikey 响应 cookie 一并入罐。
+ * （此前的明文 /api/ + type:3 桌面客户端通道已被风控拦截：手机确认后返回
+ * 8821「请切换其他登录方式或升级新版本再试」+ 安全环境风险重定向）
+ */
 export async function createQrKeyNetEase(): Promise<string | null> {
-  const res = await upstreamFetch('https://music.163.com/api/login/qrcode/unikey', {
+  let jar = '';
+  try {
+    // 模拟用户打开登录页：首页种 NMTID 等会话 cookie
+    const home = await upstreamFetch('https://music.163.com/', {
+      headers: { 'User-Agent': UA, Referer: REFERER },
+      cache: 'no-store',
+    });
+    jar = mergeCookies(jar, home);
+  } catch {
+    /* 种 cookie 失败不阻塞主流程 */
+  }
+
+  const { params, encSecKey } = weapi({ type: 1, noCheckToken: true });
+  const res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/unikey', {
     method: 'POST',
-    headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ type: String(3) }),
+    headers: {
+      'User-Agent': UA,
+      Referer: REFERER,
+      Origin: REFERER,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...(jar ? { Cookie: jar } : {}),
+    },
+    body: new URLSearchParams({ params, encSecKey }),
     cache: 'no-store',
   });
   if (!res.ok) return null;
+  jar = mergeCookies(jar, res);
   const json = (await res.json()) as { unikey?: string };
-  return json?.unikey ?? null;
+  const key = json?.unikey ?? null;
+  if (key) {
+    if (qrCookieJars.size > 32) {
+      // 上限清理：淘汰最早入罐的会话（Map 保持插入序）
+      const oldest = qrCookieJars.keys().next().value;
+      if (oldest !== undefined) qrCookieJars.delete(oldest);
+    }
+    qrCookieJars.set(key, jar);
+  }
+  return key;
 }
 
-/** 轮询扫码状态（明文 /api/ 路径 + form 参数）；授权成功时提取 MUSIC_U。
+/** 轮询扫码状态：weapi + type:1（web 会话，与生成通道同罐同源）。
  * 提取策略与响应形态无关：在「响应 body 原文 + Set-Cookie 头」合并文本上正则搜索，
  * 兼容 cookie 为数组/字符串/嵌套 result 等各种返回形态。 */
 export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { dbg?: string }> {
+  const jar = qrCookieJars.get(key) ?? '';
+  const { params, encSecKey } = weapi({ key, type: 1 });
   let res: Response;
   try {
-    const res_ = await upstreamFetch('https://music.163.com/api/login/qrcode/client/login', {
+    res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/client/login', {
       method: 'POST',
-      headers: { ...authHeaders(), 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ key, type: String(3) }),
+      headers: {
+        'User-Agent': UA,
+        Referer: REFERER,
+        Origin: REFERER,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...(jar ? { Cookie: jar } : {}),
+      },
+      body: new URLSearchParams({ params, encSecKey }),
       cache: 'no-store',
     });
-    res = res_;
   } catch {
     return { code: 801 };
   }
@@ -602,6 +664,9 @@ export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { 
   const musicU =
     /MUSIC_U=([^;\s"']+)/.exec(rawText)?.[1] ??
     /MUSIC_U=([^;\s"']+)/.exec(setCookieText)?.[1];
+
+  // 终态释放会话罐：确认成功或二维码过期
+  if (code === 800 || (code === 803 && musicU)) qrCookieJars.delete(key);
 
   if (code === 803 && musicU) return { code: 803, musicU };
   if (musicU && (code === undefined || code === 200)) {
