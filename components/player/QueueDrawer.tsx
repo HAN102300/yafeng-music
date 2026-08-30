@@ -43,7 +43,7 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
         transition={{ type: 'spring', stiffness: 320, damping: 34 }}
         className="fixed top-0 right-0 bottom-0 z-[70] w-[min(380px,92vw)] flex flex-col border-l border-white/10"
         style={{
-          background: 'rgba(12,12,29,0.96)',
+          background: 'var(--panel-strong)',
           backdropFilter: 'blur(24px)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}

@@ -190,7 +190,7 @@ export default function HomePage() {
           tag="h1"
           delay={90}
           duration={0.9}
-          className="text-5xl sm:text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-accent)] drop-shadow-2xl"
+          className="text-5xl sm:text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-text-primary)] to-[var(--color-accent)] drop-shadow-2xl"
         />
         <div className="text-xl md:text-2xl text-white/70 mt-3 text-center">
           <TextGenerateEffect words="每一秒都值得" className="!text-xl md:!text-2xl" />
@@ -304,7 +304,7 @@ export default function HomePage() {
                       </button>
                       <button
                         onClick={() => playQueueFrom(dailySongs.map(toTrack), 0)}
-                        className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                        className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity"
                       >
                         ▶ 播放全部
                       </button>
@@ -383,7 +383,7 @@ export default function HomePage() {
                       displayOverlayContent
                       onClick={() => handlePlaySong(toTrack(song))}
                       overlayContent={
-                        <div className="flex items-end justify-between rounded-b-[15px] bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-10 w-full">
+                        <div className="on-image flex items-end justify-between rounded-b-[15px] bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-10 w-full">
                           <div className="min-w-0">
                             <p className="text-white text-sm font-semibold truncate">{song.name}</p>
                             <p className="text-white/60 text-xs truncate">{song.artists}</p>
@@ -443,7 +443,7 @@ export default function HomePage() {
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
-                        <div className="absolute bottom-3 left-4 right-4">
+                        <div className="on-image absolute bottom-3 left-4 right-4">
                           <h3 className="text-white font-bold">{toplist.name}</h3>
                           <p className="text-white/50 text-xs mt-0.5">{toplist.updateFrequency}</p>
                         </div>

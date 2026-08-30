@@ -36,7 +36,7 @@ export default function HistoryPage() {
           <EmptyBlock icon="🕒" title="还没有播放记录" desc="播放的歌曲会自动出现在这里">
             <Link
               href="/"
-              className="px-6 py-3 rounded-full bg-gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+              className="px-6 py-3 rounded-full bg-gradient-primary text-white on-accent font-medium hover:opacity-90 transition-opacity"
             >
               去首页听歌
             </Link>
@@ -52,7 +52,7 @@ export default function HistoryPage() {
             <div className="flex justify-end mb-3">
               <button
                 onClick={() => useMusicStore.getState().playQueueFrom(history, 0)}
-                className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity"
               >
                 ▶ 播放全部
               </button>

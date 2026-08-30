@@ -102,9 +102,9 @@ export default function PlayerBar() {
             <div
               className="px-3 sm:px-5 py-3 flex items-center justify-between gap-2"
               style={{
-                background: 'linear-gradient(180deg, rgba(12,12,29,0.82) 0%, rgba(12,12,29,0.96) 100%)',
+                background: 'var(--panel-bar-bg)',
                 backdropFilter: 'blur(24px)',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
+                borderTop: '1px solid var(--glass-border)',
               }}
             >
               {/* 左侧：歌曲信息 */}
@@ -153,7 +153,7 @@ export default function PlayerBar() {
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 ml-0.5 on-accent" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   )}

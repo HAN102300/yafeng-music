@@ -24,7 +24,7 @@ export function ShimmerButton({ children, onClick, className = '', disabled, typ
       whileHover={{ scale: disabled ? 1 : 1.04 }}
       whileTap={{ scale: disabled ? 1 : 0.97 }}
       transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-      className={`group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-8 py-4 text-base font-semibold text-white select-none disabled:opacity-60 ${className}`}
+      className={`group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-8 py-4 text-base font-semibold text-white on-accent select-none disabled:opacity-60 ${className}`}
       style={{
         background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
         boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary) 45%, transparent)',

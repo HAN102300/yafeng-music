@@ -146,7 +146,7 @@ function SearchContent() {
             />
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white hover:opacity-90 transition-opacity flex-shrink-0"
+              className="px-5 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity flex-shrink-0"
             >
               搜索
             </button>

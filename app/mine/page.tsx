@@ -89,7 +89,7 @@ export default function MinePage() {
           <EmptyBlock icon="🔐" title="尚未登录网易云账号" desc="扫码登录后即可在这里查看创建/收藏的歌单与专辑">
             <Link
               href="/login"
-              className="px-6 py-3 rounded-full bg-gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+              className="px-6 py-3 rounded-full bg-gradient-primary text-white on-accent font-medium hover:opacity-90 transition-opacity"
             >
               去扫码登录
             </Link>

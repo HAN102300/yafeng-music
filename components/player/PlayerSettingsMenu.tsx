@@ -34,7 +34,7 @@ export function PlayerSettingsMenu({ onClose }: PlayerSettingsMenuProps) {
       exit={{ opacity: 0, y: 12, scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       className="absolute bottom-full right-0 mb-3 w-72 rounded-2xl border border-white/10 shadow-2xl shadow-black/60 overflow-hidden"
-      style={{ background: 'rgba(12,12,29,0.96)', backdropFilter: 'blur(24px)' }}
+      style={{ background: 'var(--panel-strong)', backdropFilter: 'blur(24px)' }}
     >
       {/* 音质 */}
       <div className="px-4 pt-4 pb-3 border-b border-white/10">

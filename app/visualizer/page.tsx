@@ -332,11 +332,11 @@ export default function VisualizerPage() {
                   title={isPlaying ? '暂停' : '播放'}
                 >
                   {isPlaying ? (
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-white on-accent" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   ) : (
-                    <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-white on-accent ml-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   )}

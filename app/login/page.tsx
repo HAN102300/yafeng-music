@@ -69,6 +69,7 @@ export default function LoginPage() {
           } else if (res.code === 803) {
             // 授权成功但未取到登录 cookie：停止轮询，提示重试而非卡死
             clearInterval(pollRef.current);
+            console.warn('[qr] 803 未携带 MUSIC_U，诊断:', res.dbg);
             setQrState('error');
             toast('登录成功但登录态获取失败，请点击刷新二维码重试', 'error');
           } else if (res.code === 800) {
@@ -115,7 +116,7 @@ export default function LoginPage() {
         ) : (
           <Iridescence color={[1, 0.5, 0.85]} speed={1.2} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a1a] via-transparent to-[#0a0a1a]/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-dark-base)] via-transparent to-[var(--color-dark-base)]/60" />
       </div>
 
       <motion.div
@@ -134,7 +135,7 @@ export default function LoginPage() {
             <p className="text-white/40 text-sm mb-8">享受你的音乐时光</p>
             <button
               onClick={() => router.push('/')}
-              className="px-8 py-3 rounded-full bg-gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+              className="px-8 py-3 rounded-full bg-gradient-primary text-white on-accent font-medium hover:opacity-90 transition-opacity"
             >
               回到首页
             </button>
@@ -198,7 +199,7 @@ export default function LoginPage() {
             {(qrState === 'expired' || qrState === 'error') && (
               <button
                 onClick={startQr}
-                className="px-8 py-3 rounded-full bg-gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+                className="px-8 py-3 rounded-full bg-gradient-primary text-white on-accent font-medium hover:opacity-90 transition-opacity"
               >
                 刷新二维码
               </button>

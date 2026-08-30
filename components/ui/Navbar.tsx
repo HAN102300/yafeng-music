@@ -86,9 +86,9 @@ export default function Navbar() {
           }
         `}
         style={{
-          background: scrolled ? 'rgba(12, 12, 29, 0.8)' : 'transparent',
+          background: scrolled ? 'var(--panel-nav-bg)' : 'transparent',
           backdropFilter: scrolled ? 'blur(20px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.1)' : 'none',
+          borderBottom: scrolled ? '1px solid var(--glass-border)' : 'none',
         }}
       >
         <div className="container-glass flex items-center justify-between">
@@ -227,7 +227,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="px-4 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity"
               >
                 登录
               </Link>

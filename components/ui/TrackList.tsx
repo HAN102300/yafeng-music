@@ -116,7 +116,7 @@ export function TrackList({ tracks, onPlay, startIndex = 0, className = '', hide
             <button
               className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                 isPlayingThis
-                  ? 'bg-gradient-primary text-white'
+                  ? 'bg-gradient-primary text-white on-accent'
                   : 'bg-white/5 text-white/70 group-hover:bg-white/15'
               }`}
               onClick={(e) => {

@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" data-theme="nebula" suppressHydrationWarning>
+    <html lang="zh-CN" data-theme="nebula" data-mode="dark" suppressHydrationWarning>
       <body className="bg-[var(--color-dark-base)] min-h-screen text-white antialiased">
         {/* 静态底色光斑（全局可视化背景之下的兜底氛围，颜色随主题） */}
         <div className="fixed inset-0 z-0 pointer-events-none">

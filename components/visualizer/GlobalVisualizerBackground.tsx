@@ -72,7 +72,7 @@ export function GlobalVisualizerBackground() {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(10,10,26,0.6) 0%, rgba(10,10,26,0.2) 26%, rgba(10,10,26,0.2) 66%, rgba(10,10,26,0.78) 100%)',
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-dark-base) 60%, transparent) 0%, color-mix(in srgb, var(--color-dark-base) 20%, transparent) 26%, color-mix(in srgb, var(--color-dark-base) 20%, transparent) 66%, color-mix(in srgb, var(--color-dark-base) 78%, transparent) 100%)',
         }}
       />
     </div>

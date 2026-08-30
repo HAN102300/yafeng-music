@@ -183,8 +183,12 @@ export async function createQrKey(): Promise<string> {
   return json.unikey;
 }
 
-export async function checkQrKey(key: string): Promise<QrCheckResult> {
-  return apiFetch<QrCheckResult>(`/api/auth/qr-check?key=${encodeURIComponent(key)}`);
+export async function checkQrKey(
+  key: string
+): Promise<QrCheckResult & { dbg?: string }> {
+  return apiFetch<QrCheckResult & { dbg?: string }>(
+    `/api/auth/qr-check?key=${encodeURIComponent(key)}`
+  );
 }
 
 export interface NcmAccount {

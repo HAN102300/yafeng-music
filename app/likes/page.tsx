@@ -25,7 +25,7 @@ export default function LikesPage() {
           <EmptyBlock icon="💗" title="还没有喜欢的歌曲" desc="在任意歌曲行或播放条点击 ♥ 即可收藏">
             <Link
               href="/"
-              className="px-6 py-3 rounded-full bg-gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+              className="px-6 py-3 rounded-full bg-gradient-primary text-white on-accent font-medium hover:opacity-90 transition-opacity"
             >
               去首页听歌
             </Link>
@@ -41,7 +41,7 @@ export default function LikesPage() {
             <div className="flex justify-end mb-3">
               <button
                 onClick={() => useMusicStore.getState().playQueueFrom(likedTracks, 0)}
-                className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity"
               >
                 ▶ 播放全部
               </button>

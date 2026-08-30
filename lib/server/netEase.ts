@@ -553,8 +553,10 @@ export async function createQrKeyNetEase(): Promise<string | null> {
   return json?.unikey ?? null;
 }
 
-/** 轮询扫码状态；授权成功时提取 MUSIC_U（body cookie 数组为主源，Set-Cookie 头兜底） */
-export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult> {
+/** 轮询扫码状态；授权成功时提取 MUSIC_U。
+ * 提取策略与响应形态无关：在「响应 body 原文 + Set-Cookie 头」合并文本上正则搜索，
+ * 兼容 cookie 为数组/字符串/嵌套 result 等各种返回形态。 */
+export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { dbg?: string }> {
   let res: Response;
   try {
     const { params, encSecKey } = weapi({ key, type: 3 });
@@ -570,27 +572,41 @@ export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult> {
   }
   if (!res.ok) return { code: 801 };
 
-  let json: { code?: number; cookie?: string[] } = {};
+  const rawText = await res.text();
+  const setCookieText =
+    typeof res.headers.getSetCookie === 'function'
+      ? res.headers.getSetCookie().join('; ')
+      : (res.headers.get('set-cookie') ?? '');
+
+  // 状态码：优先 JSON 顶层 code，异常形态回退正则
+  let code: number | undefined;
   try {
-    json = (await res.json()) as { code?: number; cookie?: string[] };
+    code = (JSON.parse(rawText) as { code?: number })?.code;
   } catch {
-    return { code: 801 };
+    /* body 非 JSON，走正则 */
+  }
+  if (code === undefined) {
+    const m = /"code"\s*:\s*(\d{3})/.exec(rawText);
+    if (m) code = Number(m[1]);
   }
 
-  const extractMusicU = (list: string[]): string | undefined =>
-    list
-      .map((c) => /MUSIC_U=([^;]+)/.exec(c)?.[1])
-      .find(Boolean);
-
-  // 网易云授权成功时把 cookie 数组放在响应 body 中（比 Set-Cookie 头更可靠）
+  // MUSIC_U：body 原文与 Set-Cookie 头合并搜索（不假设任何结构）
   const musicU =
-    (Array.isArray(json.cookie) && extractMusicU(json.cookie)) ||
-    (typeof res.headers.getSetCookie === 'function'
-      ? extractMusicU(res.headers.getSetCookie())
-      : undefined);
+    /MUSIC_U=([^;\s"']+)/.exec(rawText)?.[1] ??
+    /MUSIC_U=([^;\s"']+)/.exec(setCookieText)?.[1];
 
-  if (musicU) return { code: 803, musicU };
-  return { code: json?.code ?? 801 };
+  if (code === 803 && musicU) return { code: 803, musicU };
+  if (musicU && (code === undefined || code === 200)) {
+    // 未识别的状态码但确实携带登录 cookie：按成功处理
+    return { code: 803, musicU };
+  }
+
+  const result: QrCheckResult & { dbg?: string } = { code: code ?? 801 };
+  // 诊断信息（仅 803 无 cookie 或非预期状态码时附带，帮助定位上游返回形态）
+  if (code === 803 || (code !== 800 && code !== 801 && code !== 802)) {
+    result.dbg = `body=${rawText.slice(0, 200)} setCookieN=${setCookieText ? setCookieText.split(';').filter((s) => s.includes('=')).length : 0}`;
+  }
+  return result;
 }
 
 // ---------- 登录态能力 ----------

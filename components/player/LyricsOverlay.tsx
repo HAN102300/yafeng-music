@@ -75,7 +75,7 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
       className="fixed bottom-[92px] left-1/2 -translate-x-1/2 z-[60] w-[min(680px,92vw)] rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60"
       style={{
-        background: 'rgba(12,12,29,0.92)',
+        background: 'var(--panel-strong)',
         backdropFilter: 'blur(24px)',
       }}
     >

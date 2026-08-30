@@ -122,7 +122,7 @@ function TopContent() {
                 </p>
                 <button
                   onClick={() => playQueueFrom(songs.map(toTrack), 0)}
-                  className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white hover:opacity-90 transition-opacity"
+                  className="px-4 py-2 rounded-xl text-sm bg-gradient-primary text-white on-accent hover:opacity-90 transition-opacity"
                 >
                   ▶ 播放整榜
                 </button>
