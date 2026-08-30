@@ -553,7 +553,7 @@ export async function createQrKeyNetEase(): Promise<string | null> {
   return json?.unikey ?? null;
 }
 
-/** 轮询扫码状态；803 时从 Set-Cookie 提取 MUSIC_U */
+/** 轮询扫码状态；授权成功时提取 MUSIC_U（body cookie 数组为主源，Set-Cookie 头兜底） */
 export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult> {
   let res: Response;
   try {
@@ -569,19 +569,27 @@ export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult> {
     return { code: 801 };
   }
   if (!res.ok) return { code: 801 };
-  const json = (await res.json()) as { code?: number };
 
-  if (json?.code === 803) {
-    // Node undici 提供 getSetCookie，老环境回退 get('set-cookie')
-    const rawCookies =
-      typeof res.headers.getSetCookie === 'function'
-        ? res.headers.getSetCookie()
-        : [res.headers.get('set-cookie') ?? ''];
-    const musicU = rawCookies
+  let json: { code?: number; cookie?: string[] } = {};
+  try {
+    json = (await res.json()) as { code?: number; cookie?: string[] };
+  } catch {
+    return { code: 801 };
+  }
+
+  const extractMusicU = (list: string[]): string | undefined =>
+    list
       .map((c) => /MUSIC_U=([^;]+)/.exec(c)?.[1])
       .find(Boolean);
-    return { code: 803, musicU: musicU || undefined };
-  }
+
+  // 网易云授权成功时把 cookie 数组放在响应 body 中（比 Set-Cookie 头更可靠）
+  const musicU =
+    (Array.isArray(json.cookie) && extractMusicU(json.cookie)) ||
+    (typeof res.headers.getSetCookie === 'function'
+      ? extractMusicU(res.headers.getSetCookie())
+      : undefined);
+
+  if (musicU) return { code: 803, musicU };
   return { code: json?.code ?? 801 };
 }
 

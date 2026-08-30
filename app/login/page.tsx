@@ -31,18 +31,26 @@ export default function LoginPage() {
   const [unikey, setUnikey] = useState<string | null>(null);
   const [qrState, setQrState] = useState<QrState>('loading');
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  // 生成代次令牌：StrictMode 双挂载/手动刷新时作废旧轮询，防止双 interval 与旧 key 覆盖状态
+  const genRef = useRef(0);
 
   /** 生成二维码并开始轮询 */
   const startQr = useCallback(async () => {
     clearInterval(pollRef.current);
+    const gen = ++genRef.current;
     setQrState('loading');
     setUnikey(null);
     try {
       const key = await createQrKey();
+      if (gen !== genRef.current) return;
       setUnikey(key);
       setQrState('waiting');
 
       pollRef.current = setInterval(async () => {
+        if (gen !== genRef.current) {
+          clearInterval(pollRef.current);
+          return;
+        }
         try {
           const res = await checkQrKey(key);
           if (res.code === 802) {
@@ -58,6 +66,11 @@ export default function LoginPage() {
               setQrState('error');
               toast('登录态校验失败，请重新扫码', 'error');
             }
+          } else if (res.code === 803) {
+            // 授权成功但未取到登录 cookie：停止轮询，提示重试而非卡死
+            clearInterval(pollRef.current);
+            setQrState('error');
+            toast('登录成功但登录态获取失败，请点击刷新二维码重试', 'error');
           } else if (res.code === 800) {
             clearInterval(pollRef.current);
             setQrState('expired');
@@ -67,7 +80,7 @@ export default function LoginPage() {
         }
       }, POLL_INTERVAL_MS);
     } catch {
-      setQrState('error');
+      if (gen === genRef.current) setQrState('error');
     }
   }, [router]);
 

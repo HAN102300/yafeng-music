@@ -58,13 +58,24 @@ export function clearLogin(): void {
   emit();
 }
 
-/** 用 MUSIC_U 向服务端换取账号信息（扫码 803 后调用） */
+/** 用 MUSIC_U 向服务端换取账号信息（扫码 803 后调用）。
+ * 账号接口偶发失败时重试一次；仍失败则保留 MUSIC_U 登录态并使用通用昵称兜底，
+ * 避免用户扫码确认成功后还被要求重新扫码。 */
 export async function loginWithMusicU(musicU: string): Promise<NcmAccount | null> {
   localStorage.setItem(KEY_MUSIC_U, musicU); // 先写入以便 fetchAccount 透传
-  const account = await fetchAccount();
+  let account = await fetchAccount();
   if (!account) {
-    localStorage.removeItem(KEY_MUSIC_U); // 无效 cookie 回滚
-    return null;
+    account = await fetchAccount();
+  }
+  if (!account) {
+    const fallback: NcmProfile = {
+      userId: 0,
+      nickname: '网易云音乐用户',
+      avatarUrl: '/images/播放.png',
+    };
+    localStorage.setItem(KEY_PROFILE, JSON.stringify(fallback));
+    emit();
+    return fallback;
   }
   localStorage.setItem(KEY_PROFILE, JSON.stringify(account));
   emit();
