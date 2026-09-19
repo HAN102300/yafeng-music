@@ -10,7 +10,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Track } from './data';
-import { localSongs } from './data';
 import type { SongQuality } from './server/netEase';
 import { audioEngine } from './audio/engine';
 
@@ -42,9 +41,6 @@ interface MusicStore {
   /** 底部播放条是否隐藏（隐藏后右下角显示 mini 悬浮播放器） */
   barHidden: boolean;
   setBarHidden: (hidden: boolean) => void;
-  /** 全局背景可视化开关（所有页面音乐驱动的全屏背景） */
-  globalVizEnabled: boolean;
-  setGlobalVizEnabled: (enabled: boolean) => void;
 
   /** 站点主题 id（见 lib/themes.ts） */
   themeId: string;
@@ -73,7 +69,6 @@ interface MusicStore {
   prev: () => void;
   seekTo: (time: number) => void;
   setVolume: (v: number) => void;
-  setPlaylist: (list: Track[]) => void;
   /** 整列入队并从指定下标开始播放（排行榜/歌单场景） */
   playQueueFrom: (list: Track[], index: number) => void;
   /** 从队列移除单曲（移除当前曲时自动切换到下一首） */
@@ -104,8 +99,6 @@ export const useMusicStore = create<MusicStore>()(
       visualizerSceneId: 'flow',
       barHidden: false,
       setBarHidden: (hidden: boolean) => set({ barHidden: hidden }),
-      globalVizEnabled: true,
-      setGlobalVizEnabled: (enabled: boolean) => set({ globalVizEnabled: enabled }),
 
       themeId: 'nebula',
       setThemeId: (id: string) => set({ themeId: id }),
@@ -196,8 +189,6 @@ export const useMusicStore = create<MusicStore>()(
 
       setVolume: (v: number) => set({ volume: Math.max(0, Math.min(1, v)) }),
 
-      setPlaylist: (list: Track[]) => set({ playlist: list }),
-
       playQueueFrom: (list: Track[], index: number) => {
         if (list.length === 0) return;
         const safeIndex = Math.max(0, Math.min(index, list.length - 1));
@@ -259,20 +250,18 @@ export const useMusicStore = create<MusicStore>()(
         likedTracks: state.likedTracks,
         history: state.history,
         barHidden: state.barHidden,
-        globalVizEnabled: state.globalVizEnabled,
         themeId: state.themeId,
         quality: state.quality,
         playbackRate: state.playbackRate,
       }),
-      // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（旧在线收藏无法回查，迁本地匹配项）
+      // v0 → v1：likedIds（仅 id）迁移为 likedTracks 快照（本地曲库已移除，旧 id 无法回查则清空）
       migrate: (persisted) => {
         const p = persisted as Partial<{
           likedIds: number[];
           likedTracks: Track[];
         }> & Record<string, unknown>;
         if (!p.likedTracks && Array.isArray(p.likedIds)) {
-          const ids = new Set(p.likedIds);
-          p.likedTracks = localSongs.filter((t) => ids.has(t.id));
+          p.likedTracks = [];
         }
         return p as unknown as MusicStore;
       },

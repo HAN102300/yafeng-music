@@ -9,7 +9,6 @@ export interface ThemeColors {
   primary: string;
   secondary: string;
   accent: string;
-  background: string;
   glow: string;
 }
 
@@ -49,7 +48,6 @@ export function calculateTheme(
     primary: blendColors(active.primary, BAND_TINTS.warm, bassRatio * 0.35),
     secondary: blendColors(active.secondary, active.accent, mid * 0.25),
     accent: blendColors(active.accent, BAND_TINTS.cool, trebleRatio * 0.3),
-    background: '',
     glow: withAlpha(active.primary, 0.4 + intensity * 0.2),
   };
 

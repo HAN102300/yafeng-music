@@ -23,7 +23,7 @@ export interface FrameData {
   isPlaying: boolean;
 }
 
-const EMPTY_BEAT: BeatState = { isBeat: false, bpm: 120, confidence: 0, phase: 0 };
+const EMPTY_BEAT: BeatState = { isBeat: false, bpm: 120, confidence: 0 };
 
 class AudioEngine {
   private audio: HTMLAudioElement | null = null;
@@ -97,14 +97,6 @@ class AudioEngine {
     if (this.audio && isFinite(time)) {
       this.audio.currentTime = Math.max(0, time);
     }
-  }
-
-  getAudioContext(): AudioContext | null {
-    return this.ctx;
-  }
-
-  isReady(): boolean {
-    return this.connected;
   }
 
   /**

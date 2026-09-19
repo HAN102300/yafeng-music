@@ -159,11 +159,3 @@ export function applySiteTheme(id: string): void {
     document.documentElement.dataset.mode = activeTheme.mode;
   }
 }
-
-/** hex → "r,g,b"（供 color-mix / rgba 使用） */
-export function hexToRgbStr(hex: string): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return '139,92,246';
-  const n = parseInt(m[1], 16);
-  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
-}

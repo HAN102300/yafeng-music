@@ -9,7 +9,6 @@ export interface BeatState {
   isBeat: boolean;
   bpm: number;
   confidence: number;
-  phase: number;
 }
 
 export class BeatDetector {
@@ -27,12 +26,11 @@ export class BeatDetector {
 
   private lastBeatTime = 0;
   private estimatedBPM = 120;
-  private beatPhase = 0;
   private readonly minBPM = 60;
   private readonly maxBPM = 200;
 
   // 复用的返回值对象
-  private readonly state: BeatState = { isBeat: false, bpm: 120, confidence: 0, phase: 0 };
+  private readonly state: BeatState = { isBeat: false, bpm: 120, confidence: 0 };
 
   /**
    * 处理新的能量值（原地更新并返回复用对象）
@@ -75,12 +73,9 @@ export class BeatDetector {
       this.estimateBPM();
     }
 
-    this.updatePhase(now);
-
     this.state.isBeat = isBeat;
     this.state.bpm = Math.round(this.estimatedBPM);
     this.state.confidence = this.calculateConfidence();
-    this.state.phase = this.beatPhase;
     return this.state;
   }
 
@@ -108,12 +103,6 @@ export class BeatDetector {
     }
   }
 
-  private updatePhase(now: number): void {
-    const beatInterval = 60000 / this.estimatedBPM;
-    const timeSinceLastBeat = now - this.lastBeatTime;
-    this.beatPhase = (timeSinceLastBeat % beatInterval) / beatInterval;
-  }
-
   private calculateConfidence(): number {
     if (this.beatCount < 4) return 0;
 
@@ -131,18 +120,6 @@ export class BeatDetector {
     const stdDev = Math.sqrt(variance);
 
     return Math.max(0, 1 - stdDev / avg);
-  }
-
-  reset(): void {
-    this.energyHistory = new Array(this.historySize).fill(0);
-    this.historyCount = 0;
-    this.historyIndex = 0;
-    this.beatTimes = new Array(this.beatCapacity).fill(0);
-    this.beatCount = 0;
-    this.beatIndex = 0;
-    this.lastBeatTime = 0;
-    this.estimatedBPM = 120;
-    this.beatPhase = 0;
   }
 }
 

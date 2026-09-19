@@ -139,7 +139,7 @@ export default function VisualizerPage() {
       {/* ===== 背景可视化层 ===== */}
       {isFullscreenScene ? (
         <div className="absolute inset-0 z-[1] pointer-events-none">
-          <SceneManager sceneId={sceneId} coverUrl={currentSong?.cover} quality={quality} backgroundOnly />
+          <SceneManager sceneId={sceneId} coverUrl={currentSong?.cover} quality={quality} />
         </div>
       ) : (
         <>
@@ -234,7 +234,6 @@ export default function VisualizerPage() {
 
         {/* 内嵌滚动歌词（融入背景，无浮层边框） */}
         <LyricsScroller
-          lyricUrl={currentSong?.lyricUrl}
           neteaseId={currentSong?.neteaseId}
           height={190}
           lineHeight={46}

@@ -17,7 +17,7 @@ const DEFAULTS: SceneThemeColors = {
 };
 
 /** hex 色转带透明度的 rgba */
-export function hexToRgba(hex: string, alpha: number): string {
+function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace('#', '');
   if (h.length !== 6) return `rgba(168, 85, 247, ${alpha})`;
   const r = parseInt(h.slice(0, 2), 16);

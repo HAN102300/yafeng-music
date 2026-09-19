@@ -12,7 +12,6 @@ import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { findLyricIndex } from '@/lib/lyrics';
 
 interface LyricsScrollerProps {
-  lyricUrl?: string;
   neteaseId?: number;
   /** 容器高度（px） */
   height?: number;
@@ -22,14 +21,13 @@ interface LyricsScrollerProps {
 }
 
 export function LyricsScroller({
-  lyricUrl,
   neteaseId,
   height = 220,
   lineHeight = 44,
   className = '',
 }: LyricsScrollerProps) {
   const seekTo = useMusicStore((s) => s.seekTo);
-  const lines = useLyrics(lyricUrl, neteaseId);
+  const lines = useLyrics(neteaseId);
 
   const [index, setIndex] = useState(-1);
   const indexRef = useRef(-1);
