@@ -54,31 +54,40 @@ jobs:
           Copy-Item $nodeSrc "src-tauri/binaries/node-x86_64-pc-windows-msvc.exe" -Force
           Write-Host "sidecar 源: $nodeSrc"
 
-      - name: Cache NSIS toolchain (avoid transient 504)
+      - name: Cache NSIS toolchain (best-effort, retry 3x)
         shell: pwsh
         run: |
           $nsisDir = "$env:LOCALAPPDATA\tauri\NSIS"
           if (Test-Path "$nsisDir\Bin\makensis.exe") { Write-Host "NSIS cached"; exit 0 }
+          $curl = "C:\Windows\System32\curl.exe"; if (-not (Test-Path $curl)) { $curl = "curl" }
           $zip = "$env:RUNNER_TEMP\nsis-3.13.zip"
-          foreach ($i in 1..3) {
-            try {
-              Invoke-WebRequest -Uri "https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.13/nsis-3.13.zip" -OutFile $zip -MaximumRedirection 5
-              break
-            } catch { Write-Host "retry $i"; Start-Sleep 5 }
-          }
-          New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\tauri" | Out-Null
-          tar -xf $zip -C "$env:LOCALAPPDATA\tauri"
-          if (Test-Path "$env:LOCALAPPDATA\tauri\nsis-3.13") { Rename-Item "$env:LOCALAPPDATA\tauri\nsis-3.13" "NSIS" }
           $dll = "$env:RUNNER_TEMP\nsis_tauri_utils.dll"
+          $zOK = $false; $dOK = $false
           foreach ($i in 1..3) {
-            try {
-              Invoke-WebRequest -Uri "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll" -OutFile $dll -MaximumRedirection 5
-              break
-            } catch { Write-Host "retry $i"; Start-Sleep 5 }
+            & $curl -sSL --retry 3 --max-time 120 -o $zip "https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.13/nsis-3.13.zip"
+            if (Test-Path $zip) { $zOK = $true; break }
+            Start-Sleep 5
           }
-          New-Item -ItemType Directory -Force -Path "$nsisDir\Plugins\x86-unicode\additional" | Out-Null
-          Copy-Item $dll "$nsisDir\Plugins\x86-unicode\additional\nsis_tauri_utils.dll" -Force
+          foreach ($i in 1..3) {
+            & $curl -sSL --retry 3 --max-time 60 -o $dll "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll"
+            if (Test-Path $dll) { $dOK = $true; break }
+            Start-Sleep 5
+          }
+          if ($zOK) {
+            New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\tauri" | Out-Null
+            tar -xf $zip -C "$env:LOCALAPPDATA\tauri"
+            if (Test-Path "$env:LOCALAPPDATA\tauri\nsis-3.13") { Rename-Item "$env:LOCALAPPDATA\tauri\nsis-3.13" "NSIS" }
+          }
+          if ($zOK -and $dOK) {
+            New-Item -ItemType Directory -Force -Path "$nsisDir\Plugins\x86-unicode\additional" | Out-Null
+            Copy-Item $dll "$nsisDir\Plugins\x86-unicode\additional\nsis_tauri_utils.dll" -Force
+            Write-Host "NSIS cache prepared"
+          } else {
+            Write-Host "NSIS cache download failed - will let tauri handle it (best-effort)"
+            exit 0
+          }
 
+      - name: Bundle (sign updater artifacts)
       - name: Bundle (sign updater artifacts)
         uses: tauri-apps/tauri-action@v0
         env:
