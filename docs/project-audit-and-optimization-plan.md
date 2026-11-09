@@ -343,7 +343,8 @@
 > - UI 修复：歌词浮窗底部锚定 520px 紧凑面板、队列抽屉让位标题栏、可视化页左右布局（圆环左/歌词右 flex 主体）✅
 > > - **Phase 4 已完成**：updater 插件 + 签名密钥对 + GitHub Actions（tag → 构建/签名/Release/latest.json）+ UpdateChecker UI ✅
 > - 数据持久化方案 B（Tauri Store 文件）落地；like 云端同步语义反转修复；♥ 直写网易云「喜欢的音乐」✅
-> - **待办**：GitHub remote 接入 + 首次 push + Secrets 配置、macOS/Linux CI 矩阵、回到 web 侧执行 D→B→C→F→E
+> - 仓库已接入：代码已推送 https://github.com/HAN102300/yafeng-music（默认分支 main，git 走本机 SOCKS5 代理）✅
+> - **剩余待办**：GitHub Secrets 配置 TAURI_SIGNING_PRIVATE_KEY（需你手动，私钥在 ~/.tauri/yafeng.key）、macOS/Linux CI 矩阵、回到 web 侧执行 D→B→C→F→E
 
 - **Phase 0 前置勘察（0.5 天）**：安装 Rust 工具链验证；`pnpm tauri init` PoC 壳加载 localhost:3000；确认 Next standalone 可被 sidecar 启动
 - **Phase 1 壳工程（2-3 天）**：`desktop/src-tauri` 建立双产物构建（dev: next dev / prod: standalone sidecar）；窗口配置（尺寸/最小尺寸/记住位置）；无边框窗口 + 自定义标题栏（匹配玻璃拟态风格）
