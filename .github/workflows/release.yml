@@ -88,7 +88,6 @@ jobs:
           }
 
       - name: Bundle (sign updater artifacts)
-      - name: Bundle (sign updater artifacts)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
