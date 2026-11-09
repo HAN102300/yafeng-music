@@ -15,7 +15,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { TrackList } from '@/components/ui/TrackList';
 import { ArtistCard } from '@/components/cards/ArtistCard';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
-import { LoadingBlock } from '@/components/ui/StateViews';
+import { LoadingBlock, PlaylistSkeleton, ArtistSkeleton, ErrorBlock, EmptyBlock } from '@/components/ui/StateViews';
+import { desktopStorage } from '@/lib/desktopStorage';
 
 type SearchType = 'song' | 'artist' | 'playlist';
 const HISTORY_KEY = 'yafeng-search-history';
@@ -25,19 +26,16 @@ const TYPE_TABS: { id: SearchType; label: string; icon: string }[] = [
   { id: 'playlist', label: '歌单', icon: '📋' },
 ];
 
-function getHistory(): string[] {
+/** 搜索历史读取（桌面=Tauri Store 文件 / web=localStorage） */
+async function readHistory(): Promise<string[]> {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as string[];
+    const raw = await desktopStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];
   }
 }
 
-function pushHistory(q: string): string[] {
-  const list = [q, ...getHistory().filter((h) => h !== q)].slice(0, 10);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-  return list;
-}
 
 function SearchContent() {
   const params = useSearchParams();
@@ -57,8 +55,21 @@ function SearchContent() {
   const [hotWords, setHotWords] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
 
+  /** 写入历史（去重、上限 10 条）并刷新 state；持久化到 desktopStorage */
+  const pushHistory = useCallback(async (q: string): Promise<string[]> => {
+    const list = await readHistory();
+    const next = [q, ...list.filter((h) => h !== q)].slice(0, 10);
+    await desktopStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    return next;
+  }, []);
+
+  /** 清空历史 */
+  const clearHistory = useCallback(async () => {
+    await desktopStorage.removeItem(HISTORY_KEY);
+  }, []);
+
   useEffect(() => {
-    setHistory(getHistory());
+    readHistory().then(setHistory).catch(() => {});
     fetchSearchHot()
       .then(setHotWords)
       .catch(() => {});
@@ -86,7 +97,7 @@ function SearchContent() {
   useEffect(() => {
     if (initial) {
       setKeyword(initial);
-      setHistory(pushHistory(initial));
+      void pushHistory(initial).then(setHistory);
       doSearch(initial, type);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅在 URL 关键词变化时搜索
@@ -103,13 +114,13 @@ function SearchContent() {
     const q = keyword.trim();
     if (!q) return;
     router.replace(`/search?q=${encodeURIComponent(q)}`);
-    setHistory(pushHistory(q));
+    void pushHistory(q).then(setHistory);
     doSearch(q, type);
   };
 
   const handleKeyword = (q: string) => {
     setKeyword(q);
-    setHistory(pushHistory(q));
+    void pushHistory(q).then(setHistory);
     router.replace(`/search?q=${encodeURIComponent(q)}`);
     doSearch(q, type);
   };
@@ -221,26 +232,42 @@ function SearchContent() {
         )}
 
         {/* 结果 */}
-        {loading && <LoadingBlock label="搜索中..." />}
+        {loading && type === 'playlist' && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }, (_, i) => (
+              <PlaylistSkeleton key={i} />
+            ))}
+          </div>
+        )}
+        {loading && type === 'artist' && (
+          <div className="flex flex-wrap justify-center gap-8">
+            {Array.from({ length: 6 }, (_, i) => (
+              <ArtistSkeleton key={i} />
+            ))}
+          </div>
+        )}
+        {loading && type === 'song' && <LoadingBlock label="搜索中..." />}
 
         {!loading && searched && error && (
-          <div className="text-center py-16 text-white/40">
-            <p className="text-4xl mb-3">📡</p>
-            <p className="text-white/60">{error}</p>
-            <button
-              onClick={() => doSearch(keyword.trim(), type)}
-              className="mt-4 px-5 py-2 rounded-xl text-sm bg-white/10 text-white hover:bg-white/15 transition-colors"
-            >
-              重新搜索
-            </button>
-          </div>
+          <ErrorBlock message={error} onRetry={() => doSearch(keyword.trim(), type)} />
         )}
 
         {!loading && searched && !error && resultCount === 0 && (
-          <div className="text-center py-16 text-white/40">
-            <p className="text-4xl mb-3">🎵</p>
-            <p>没有找到相关内容，换个关键词试试</p>
-          </div>
+          <EmptyBlock
+            icon="🎵"
+            title="未找到相关内容"
+            desc="换个关键词试试，或者浏览热门搜索"
+          >
+            <button
+              onClick={() => {
+                setSearched(false);
+                setKeyword('');
+              }}
+              className="px-5 py-2 rounded-xl text-sm bg-white/10 text-white hover:bg-white/15 transition-colors"
+            >
+              清除搜索
+            </button>
+          </EmptyBlock>
         )}
 
         {/* 单曲结果 */}

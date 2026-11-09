@@ -4,6 +4,7 @@
  * 歌手圆形卡片（首页热门歌手 / 歌手页 / 搜索结果复用）
  */
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import type { NetEaseArtist } from '@/lib/server/netEase';
 
 interface ArtistCardProps {
@@ -13,11 +14,13 @@ interface ArtistCardProps {
 
 export function ArtistCard({ artist, onClick }: ArtistCardProps) {
   return (
-    <div
+    <motion.div
       onClick={onClick}
       className="group flex flex-col items-center cursor-pointer"
+      whileHover={{ scale: 1.08, y: -4 }}
+      whileTap={{ scale: 0.95 }}
     >
-      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-acc transition-all relative bg-white/5">
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-accent transition-all relative bg-white/5">
         <Image
           src={artist.avatar}
           alt={artist.name}
@@ -32,6 +35,6 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
       {artist.musicSize !== undefined && artist.musicSize > 0 && (
         <p className="text-[10px] text-white/30">{artist.musicSize} 首</p>
       )}
-    </div>
+    </motion.div>
   );
 }

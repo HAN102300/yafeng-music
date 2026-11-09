@@ -19,34 +19,31 @@ interface SceneManagerProps {
 
 export function SceneManager({ sceneId, coverUrl, quality = 'high' }: SceneManagerProps) {
   const scene = getScene(sceneId);
-  const isFullscreen = scene.placement === 'fullscreen';
   const degraded = quality === 'low' && scene.quality === 'heavy';
 
   return (
     <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
       <AnimatePresence mode="wait">
-        {isFullscreen && scene.Component && (
-          <motion.div
-            key={scene.id}
-            className="absolute inset-0 pointer-events-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {degraded ? (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'radial-gradient(ellipse at 50% 40%, rgba(168,85,247,0.25) 0%, rgba(12,12,29,0.9) 70%)',
-                }}
-              />
-            ) : (
-              <scene.Component coverUrl={coverUrl} />
-            )}
-          </motion.div>
-        )}
+        <motion.div
+          key={scene.id}
+          className="absolute inset-0 pointer-events-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          {degraded ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'radial-gradient(ellipse at 50% 40%, rgba(168,85,247,0.25) 0%, rgba(12,12,29,0.9) 70%)',
+              }}
+            />
+          ) : (
+            <scene.Component coverUrl={coverUrl} />
+          )}
+        </motion.div>
       </AnimatePresence>
     </div>
   );

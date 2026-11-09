@@ -130,7 +130,8 @@ export default function PlayerBar() {
               {/* 中间：播放控制 */}
               <div className="flex items-center gap-1.5 sm:gap-3">
                 <motion.button
-                  whileTap={{ scale: 0.85 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
                   onClick={prev}
                   title="上一首"
@@ -141,7 +142,7 @@ export default function PlayerBar() {
                 </motion.button>
 
                 <motion.button
-                  whileHover={{ scale: 1.08 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
                   className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-white shadow-lg"
                   style={{ boxShadow: '0 0 20px rgba(var(--cover-color, 168,85,247), 0.45)' }}
@@ -160,7 +161,8 @@ export default function PlayerBar() {
                 </motion.button>
 
                 <motion.button
-                  whileTap={{ scale: 0.85 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
                   onClick={next}
                   title="下一首"
@@ -181,7 +183,9 @@ export default function PlayerBar() {
                   <span className="text-lg leading-none">{currentMode.icon}</span>
                 </button>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className={`p-2 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-400' : 'text-white/60 hover:text-white'}`}
                   onClick={() => currentSong && toggleLike(currentSong)}
                   title={liked ? '取消喜欢' : '喜欢'}
@@ -189,10 +193,12 @@ export default function PlayerBar() {
                   <svg className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                </button>
+                </motion.button>
 
                 {/* 播放队列 */}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
                   onClick={() => setQueueOpen(true)}
                   title={`播放队列（${playlistCount} 首）`}
@@ -205,9 +211,11 @@ export default function PlayerBar() {
                       {playlistCount > 99 ? '99+' : playlistCount}
                     </span>
                   )}
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className={`p-2 rounded-full hover:bg-white/10 transition-colors ${lyricsOpen ? 'text-acc' : 'text-white/60 hover:text-white'}`}
                   onClick={() => setLyricsOpen(!lyricsOpen)}
                   title="歌词"
@@ -215,11 +223,13 @@ export default function PlayerBar() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4m4 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                </button>
+                </motion.button>
 
                 {/* 设置（音质/倍速/定时关闭） */}
                 <div className="relative">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className={`p-2 rounded-full hover:bg-white/10 transition-colors ${settingsOpen ? 'text-acc' : 'text-white/60 hover:text-white'}`}
                     onClick={() => setSettingsOpen(!settingsOpen)}
                     title="播放设置"
@@ -227,7 +237,7 @@ export default function PlayerBar() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v2m0 10v2m-7-7h2m10 0h2M6.34 6.34l1.42 1.42m8.48 8.48l1.42 1.42m0-11.32l-1.42 1.42M7.76 16.24l-1.42 1.42M12 9a3 3 0 100 6 3 3 0 000-6z" />
                     </svg>
-                  </button>
+                  </motion.button>
                   <AnimatePresence>
                     {settingsOpen && (
                       <PlayerSettingsMenu onClose={() => setSettingsOpen(false)} />
@@ -259,7 +269,9 @@ export default function PlayerBar() {
                 </span>
 
                 {/* 收起按钮 */}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/40 hover:text-white"
                   onClick={() => setBarHidden(true)}
                   title="收起播放条"
@@ -267,7 +279,7 @@ export default function PlayerBar() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                </button>
+                </motion.button>
               </div>
             </div>
           </motion.div>

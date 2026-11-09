@@ -914,3 +914,23 @@ export async function getAlbumNetEase(
   const songs = (raw.songs ?? json?.songs ?? []).map(mapSongV3);
   return { album: mapAlbum(raw), songs };
 }
+
+// ---------- 喜欢 ----------
+
+/** 喜欢/取消喜欢歌曲（需登录，写入网易云「喜欢的音乐」歌单） */
+export async function likeSongNetEase(
+  trackId: number,
+  like: boolean,
+  musicU?: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const json = await weapiPost<{ code?: number; songId?: number }>(
+    '/weapi/song/like',
+    { trackId, like, time: '3', csrf_token: '' },
+    musicU
+  );
+  if (!json) return { ok: false, error: '网络异常或服务暂不可用' };
+  // code 200 成功；502 表示已是该状态（重复喜欢/取消），视为幂等成功
+  if (json.code === 200 || json.code === 502) return { ok: true };
+  if (json.code === 301) return { ok: false, error: '登录已过期，请重新扫码登录' };
+  return { ok: false, error: '操作失败（code ' + json.code + '）' };
+}

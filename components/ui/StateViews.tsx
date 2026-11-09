@@ -8,8 +8,39 @@ import { motion } from 'framer-motion';
 export function LoadingBlock({ label = '加载中...' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-acc animate-spin" />
-      <p className="text-sm text-white/40">{label}</p>
+      <motion.div
+        className="w-10 h-10 rounded-full border-3 border-white/20 border-t-accent animate-spin"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+      />
+      <p className="text-sm text-white/50">{label}</p>
+    </div>
+  );
+}
+
+/**
+ * 歌单卡片骨架屏
+ */
+export function PlaylistSkeleton() {
+  return (
+    <div className="rounded-2xl overflow-hidden border border-white/5 bg-white/5 animate-pulse">
+      <div className="relative aspect-square bg-white/10" />
+      <div className="p-3 space-y-2">
+        <div className="h-4 bg-white/10 rounded w-3/4" />
+        <div className="h-3 bg-white/10 rounded w-1/2" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 歌手卡片骨架屏
+ */
+export function ArtistSkeleton() {
+  return (
+    <div className="flex flex-col items-center animate-pulse">
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/10" />
+      <div className="h-4 bg-white/10 rounded w-16 mt-3" />
     </div>
   );
 }

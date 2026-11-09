@@ -13,7 +13,7 @@ import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { Sparkles } from '@/components/ui/aceternity/sparkles';
 import { GlowingButton } from '@/components/ui/aceternity/glowing-button';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { LoadingBlock, ErrorBlock, EmptyBlock } from '@/components/ui/StateViews';
+import { PlaylistSkeleton, ErrorBlock, EmptyBlock } from '@/components/ui/StateViews';
 
 const PAGE_SIZE = 35;
 /** 常用分类置顶 */
@@ -110,7 +110,13 @@ export default function SongListPage() {
         </motion.div>
 
         {error && <ErrorBlock message={error} onRetry={() => loadPage(activeCat, highquality, 0, false)} />}
-        {loading && !error && <LoadingBlock label="正在加载歌单..." />}
+        {loading && !error && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
+            {Array.from({ length: 10 }, (_, i) => (
+              <PlaylistSkeleton key={i} />
+            ))}
+          </div>
+        )}
 
         {!error && !loading && playlists.length === 0 && (
           <EmptyBlock icon="📋" title="该分类下暂无歌单" desc="换个分类试试" />

@@ -1,0 +1,100 @@
+name: Release Desktop
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Build Next standalone
+        run: npm run build
+        env:
+          DESKTOP_BUILD: "1"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Merge static/public into standalone
+        shell: pwsh
+        run: |
+          robocopy ".next/static" ".next/standalone/.next/static" /MIR /NFL /NDL /NJH /NJS /NP
+          robocopy "public" ".next/standalone/public" /MIR /NFL /NDL /NJH /NJS /NP
+          if ($LASTEXITCODE -le 7) { exit 0 } else { exit 1 }
+
+      - name: Sync standalone into src-tauri resources
+        shell: pwsh
+        run: |
+          robocopy ".next/standalone" "src-tauri/resources/next-server" /MIR /NFL /NDL /NJH /NJS /NP
+          if ($LASTEXITCODE -le 7) { exit 0 } else { exit 1 }
+
+      - name: Prepare node sidecar binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "src-tauri/binaries" | Out-Null
+          Copy-Item "(Get-Command node).Source" "src-tauri/binaries/node-x86_64-pc-windows-msvc.exe" -Force
+
+      - name: Bundle (sign updater artifacts)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "雅枫音乐 ${{ github.ref_name }}"
+          releaseBody: "详见下方 Assets（安装包 + 自动更新文件）。安装包含完整离线能力。"
+          releaseDraft: false
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc
+
+      - name: Generate latest.json (updater manifest)
+        shell: pwsh
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          $v = "$env:VERSION".TrimStart("v")
+          $sig = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig" | Select-Object -First 1
+          $sigContent = Get-Content $sig.FullName -Raw
+          $json = @{
+            version = $v
+            notes = "雅枫音乐 $env:VERSION"
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $sigContent
+                url = "https://github.com/HAN102300/yafeng-music/releases/download/$env:VERSION/雅枫音乐_$($v)_x64-setup.exe.zip"
+              }
+            }
+          } | ConvertTo-Json -Depth 5
+          Set-Content -Path "latest.json" -Value $json -Encoding utf8
+
+      - name: Zip installer (updater expects zip)
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe" -DestinationPath "雅枫音乐_$("$env:VERSION".TrimStart('v'))_x64-setup.exe.zip" -Force
+
+      - name: Upload latest.json + zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            latest.json
+            雅枫音乐_*_x64-setup.exe.zip

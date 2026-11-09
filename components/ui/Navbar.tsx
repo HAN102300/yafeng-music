@@ -15,6 +15,19 @@ import type { NetEasePlaylist } from '@/lib/server/netEase';
 import { toast } from '@/lib/toast';
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 
+/** 桌面端无边框窗口：在导航栏空白处按下拖拽移动窗口（交互元素除外） */
+async function startWindowDrag(e: React.MouseEvent<HTMLElement>): Promise<void> {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+  const target = e.target as HTMLElement;
+  if (target.closest('a, button, input, [role="button"], [data-no-drag]')) return;
+  try {
+    const { winStartDrag } = await import('@/lib/desktop');
+    await winStartDrag();
+  } catch (err) {
+    console.error('[navbar drag]', err);
+  }
+}
+
 const navLinks = [
   { href: '/', label: '首页', icon: '🏠' },
   { href: '/songlist', label: '歌单', icon: '📋' },
@@ -77,9 +90,11 @@ export default function Navbar() {
   return (
     <>
       <nav
+        onMouseDown={startWindowDrag}
         className={`
           fixed top-0 left-0 right-0 z-50
           transition-all duration-300
+          pr-[144px]
           ${scrolled
             ? 'py-2 shadow-glass'
             : 'py-4'
@@ -94,9 +109,13 @@ export default function Navbar() {
         <div className="container-glass flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
+            <motion.div
+              className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-bold text-lg"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
               雅
-            </div>
+            </motion.div>
             <span className="text-xl font-bold gradient-text hidden sm:block">
               雅枫音乐
             </span>
@@ -128,7 +147,7 @@ export default function Navbar() {
 
           {/* 搜索框 */}
           <div className="hidden lg:flex items-center">
-            <form
+            <motion.form
               onSubmit={(e) => {
                 e.preventDefault();
                 const q = searchKeyword.trim();
@@ -136,6 +155,8 @@ export default function Navbar() {
                 router.push(`/search?q=${encodeURIComponent(q)}`);
               }}
               className="glass-panel px-4 py-2 flex items-center gap-2 w-48 focus-within:border-white/20 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -147,25 +168,30 @@ export default function Navbar() {
                 placeholder="搜索音乐..."
                 className="bg-transparent text-sm text-white placeholder-white/40 w-full outline-none"
               />
-            </form>
+            </motion.form>
           </div>
 
           {/* 用户区域 */}
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeSwitcher />
 
-            <Link
-              href="/likes"
-              className="hidden md:flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <span>💗</span> 喜欢
+            <Link href="/likes" className="hidden md:flex">
+              <motion.div
+                className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span>💗</span> 喜欢
+              </motion.div>
             </Link>
 
             {profile ? (
               <div className="relative" ref={userMenuRef}>
-                <button
+                <motion.button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-pri-mix-45 relative bg-white/10">
                     <Image src={profile.avatarUrl} alt={profile.nickname} width={32} height={32} className="object-cover" />
@@ -173,7 +199,7 @@ export default function Navbar() {
                   <span className="text-sm font-medium text-white max-w-20 truncate hidden sm:block">
                     {profile.nickname}
                   </span>
-                </button>
+                </motion.button>
 
                 <AnimatePresence>
                   {userMenuOpen && (
@@ -198,7 +224,7 @@ export default function Navbar() {
                       </Link>
                       <div
                         data-lenis-prevent
-                        className="max-h-56 overflow-y-auto overscroll-contain py-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+                        className="max-h-56 overflow-y-auto overflow-x-hidden overscroll-contain py-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
                       >
                         <p className="px-3 py-1.5 text-xs text-white/30">我的歌单</p>
                         {userPlaylists.length === 0 && (
@@ -216,12 +242,14 @@ export default function Navbar() {
                         ))}
                       </div>
                       <div className="border-t border-white/10 pt-1">
-                        <button
+                        <motion.button
                           onClick={handleLogout}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           className="w-full px-3 py-2 rounded-xl text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 transition-colors text-left"
                         >
                           ⏻ 退出登录
-                        </button>
+                        </motion.button>
                       </div>
                     </motion.div>
                   )}
@@ -237,9 +265,11 @@ export default function Navbar() {
             )}
 
             {/* 移动端菜单按钮 */}
-            <button
+            <motion.button
               className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
@@ -248,7 +278,7 @@ export default function Navbar() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
-            </button>
+            </motion.button>
           </div>
         </div>
 

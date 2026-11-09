@@ -3,6 +3,7 @@
 /**
  * 歌单卡片（歌单广场 / 首页推荐 / 搜索结果复用）
  */
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { formatPlayCount } from '@/lib/format';
 import type { NetEasePlaylist } from '@/lib/server/netEase';
@@ -14,9 +15,11 @@ interface PlaylistCardProps {
 
 export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
   return (
-    <div
+    <motion.div
       onClick={onClick}
       className="group relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 cursor-pointer hover:border-pri-mix-45 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20"
+      whileHover={{ scale: 1.03, y: -4 }}
+      whileTap={{ scale: 0.98 }}
     >
       <div className="relative aspect-square overflow-hidden">
         <Image
@@ -52,6 +55,6 @@ export function PlaylistCard({ playlist, onClick }: PlaylistCardProps) {
           <p className="text-xs text-white/40 mt-1 truncate">by {playlist.creator}</p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -725,3 +725,21 @@ input {
     padding: 0 16px;
   }
 }
+
+/* ============================================
+   桌面端可视化页自适应（小窗口下按视口高度缩放核心元素）
+   ============================================ */
+.viz-center { gap: clamp(4px, 1.2vh, 16px); }
+.ring-wrap { transform: scale(clamp(0.55, 1, 1)); transform-origin: center; }
+@media (max-height: 700px) {
+  .ring-wrap { transform: scale(0.8); }
+  .viz-lyrics { height: 130px !important; }
+}
+@media (max-height: 560px) {
+  .ring-wrap { transform: scale(0.62); }
+  .viz-lyrics { height: 96px !important; }
+}
+@media (max-height: 460px) {
+  .ring-wrap { transform: scale(0.5); }
+  .viz-lyrics { height: 72px !important; }
+}

@@ -69,18 +69,22 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 24, scale: 0.98 }}
+      initial={{ opacity: 0, y: 24, scale: 0.98, x: '-50%' }}
+      animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+      exit={{ opacity: 0, y: 24, scale: 0.98, x: '-50%' }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-      className="fixed bottom-[92px] left-1/2 -translate-x-1/2 z-[60] w-[min(680px,92vw)] rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60"
+      className="fixed flex flex-col left-1/2 z-[60] w-[min(520px,88vw)] rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60"
+      /* 视口自适应：上下都不越界（顶部让出导航栏，底部让出播放栏），高度按剩余空间收缩 */
+      data-lyrics-adaptive
       style={{
         background: 'var(--panel-strong)',
         backdropFilter: 'blur(24px)',
+        bottom: 'calc(84px + env(safe-area-inset-bottom, 0px) + 12px)',
+        maxHeight: 'min(52dvh, calc(100dvh - 96px - 130px))',
       }}
     >
-      {/* 头部 */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
+      {/* 头部（固定高度，不参与收缩） */}
+      <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-white/10">
         <div className="min-w-0">
           <p className="text-sm font-medium text-white truncate">{currentSong.title}</p>
           <p className="text-xs text-white/40 truncate">{currentSong.artist}</p>
@@ -96,11 +100,11 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
         </button>
       </div>
 
-      {/* 滚动歌词 */}
+      {/* 滚动歌词：填满浮窗剩余空间（flex 容器） */}
       <div
         ref={containerRef}
         data-lenis-prevent
-        className="max-h-[46vh] overflow-y-auto overscroll-contain px-6 py-6 space-y-3 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6 space-y-3 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         {lines.length === 0 ? (
           <div className="text-center py-10 text-white/30 text-sm">

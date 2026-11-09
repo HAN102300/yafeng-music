@@ -25,3 +25,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+src-tauri/target/
+src-tauri/resources/next-server/
+src-tauri/gen/
+src-tauri/binaries/*.exe
+*.log

@@ -6,6 +6,9 @@ import GlobalAudioEngine from '@/components/player/GlobalAudioEngine';
 import { GlobalVisualizerBackground } from '@/components/visualizer/GlobalVisualizerBackground';
 import SmoothScroll from '@/components/animations/SmoothScroll';
 import Toast from '@/components/ui/Toast';
+import { DesktopBridge } from '@/components/player/DesktopBridge';
+import { TitleBarControls } from '@/components/ui/TitleBarControls';
+import { UpdateChecker } from '@/components/updater/UpdateChecker';
 import ThemeSync from '@/components/ui/ThemeSync';
 
 export const metadata: Metadata = {
@@ -54,6 +57,11 @@ export default function RootLayout({
 
         {/* 全局 Toast */}
         <Toast />
+
+        {/* 桌面端桥接 + 自定义标题栏（仅 Tauri 环境生效） */}
+        <DesktopBridge />
+        <TitleBarControls />
+        <UpdateChecker />
       </body>
     </html>
   );

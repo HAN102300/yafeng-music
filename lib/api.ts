@@ -319,3 +319,26 @@ export async function fetchLyricText(id: number): Promise<string | null> {
     return null;
   }
 }
+
+// ---------- 喜欢（网易云云端） ----------
+
+/** 喜欢/取消喜欢（写入网易云账号「喜欢的音乐」歌单；未登录返回 401 语义错误） */
+export async function likeSongNetEase(
+  trackId: number,
+  like: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch('/api/song-like', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(typeof window !== 'undefined' && localStorage.getItem('yafeng-ncm-music-u')
+        ? { 'x-ncm-music-u': localStorage.getItem('yafeng-ncm-music-u') as string }
+        : {}),
+    },
+    body: JSON.stringify({ trackId, like }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!res.ok) return { ok: false, error: json.error || '请求失败（' + res.status + '）' };
+  return { ok: !!json.ok, error: json.error };
+}

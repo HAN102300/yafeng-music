@@ -25,7 +25,16 @@ function emit() {
 
 export function subscribeAuth(listener: () => void): () => void {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  // 桌面端启动恢复登录态后强制刷新快照
+  const onRestored = () => {
+    profileCache = undefined; // 允许重新水合
+    listener();
+  };
+  window.addEventListener('yafeng-auth-restored', onRestored);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener('yafeng-auth-restored', onRestored);
+  };
 }
 
 // 进程内快照缓存：useSyncExternalStore 的 getSnapshot 必须返回稳定引用，
@@ -58,11 +67,27 @@ export function getProfile(): NcmProfile | null {
   return hydrateProfile();
 }
 
+/** 桌面端（Tauri）把键值持久化到 Store 文件；web 环境静默跳过 */
+function persistAuthToDesktop(musicU: string | null, profile: NcmProfile | null): void {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+  void (async () => {
+    try {
+      const s = await (await import('@tauri-apps/plugin-store')).load('yafeng-data.json', { autoSave: false });
+      await s.set('auth:music-u', musicU);
+      await s.set('auth:profile', profile ? JSON.stringify(profile) : null);
+      await s.save();
+    } catch (err) {
+      console.error('[ncmAuth] desktop persist failed', err);
+    }
+  })();
+}
+
 /** 登录成功：写入 MUSIC_U 与账号信息 */
 export function saveLogin(musicU: string, profile: NcmProfile): void {
   localStorage.setItem(KEY_MUSIC_U, musicU);
   localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
   profileCache = { ...profile }; // 新引用让订阅者拿到变更
+  persistAuthToDesktop(musicU, profile);
   emit();
 }
 
@@ -71,6 +96,7 @@ export function clearLogin(): void {
   localStorage.removeItem(KEY_MUSIC_U);
   localStorage.removeItem(KEY_PROFILE);
   profileCache = null;
+  persistAuthToDesktop(null, null);
   emit();
 }
 

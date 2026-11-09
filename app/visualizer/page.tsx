@@ -7,10 +7,8 @@
  * - 本页独占全屏：Navbar 与底部 PlayerBar 在此路由自动隐藏（见各自组件）
  * - 顶部：自动隐藏栏 = 返回 + 场景 dock + BPM（dock 从底部上移，底部只留一个控制舱）
  * - 中央：封面圆环（点击切场景）+ 歌名/歌手 + 内嵌滚动歌词，垂直居中呼吸感布局
- * - 背景：所选场景即背景——
- *     · 全屏场景（流光频谱/粒子宇宙/星尘/丝弦/星际穿越）铺满视口
- *     · 中央场景（频谱）渲染为全宽贴底的「声景地平线」，顶部渐隐融入黑暗
- *     · 环形音浪即中央圆环本身
+ * - 背景：所选场景即背景——七个场景统一为一层全屏背景（流光频谱/环形光晕/声景地平线/
+ *     粒子宇宙/星尘/丝弦/星际穿越），由 SceneManager 互斥挂载
  * - 底部：唯一一个悬浮玻璃控制舱（进度 + 模式/上一首/播放/下一首/喜欢）
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,9 +19,8 @@ import { useAudioFrame } from '@/hooks/useAudioFrame';
 import { useAudioProgress } from '@/hooks/useAudioProgress';
 import { useDragPercent } from '@/hooks/useDragPercent';
 import { useQualityTier } from '@/hooks/useQualityTier';
-import { SCENES, getScene } from '@/lib/visualizer/registry';
+import { SCENES } from '@/lib/visualizer/registry';
 import { SceneManager } from '@/components/visualizer/SceneManager';
-import { FullBleedScene } from '@/components/visualizer/FullBleedScene';
 import { CircularVisualizer } from '@/components/visualizer/CircularVisualizer';
 import { LyricsScroller } from '@/components/player/LyricsScroller';
 import { fetchHotChartTracks } from '@/lib/api';
@@ -113,8 +110,6 @@ export default function VisualizerPage() {
     setScene(SCENES[(idx + 1) % SCENES.length].id);
   };
 
-  const scene = getScene(sceneId);
-  const isFullscreenScene = scene.placement === 'fullscreen';
   const currentModeLabel =
     playMode === 'single' ? '单曲循环' : playMode === 'random' ? '随机播放' : '列表循环';
 
@@ -136,24 +131,10 @@ export default function VisualizerPage() {
         }}
       />
 
-      {/* ===== 背景可视化层 ===== */}
-      {isFullscreenScene ? (
-        <div className="absolute inset-0 z-[1] pointer-events-none">
-          <SceneManager sceneId={sceneId} coverUrl={currentSong?.cover} quality={quality} />
-        </div>
-      ) : (
-        <>
-          {/* 低环境辉光，避免纯黑呆板 */}
-          <div
-            className="absolute inset-0 z-[1] pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 65%)',
-            }}
-          />
-          {scene.id !== 'circular' && <FullBleedScene />}
-        </>
-      )}
+      {/* ===== 背景可视化层（每个场景都是一层全屏背景） ===== */}
+      <div className="absolute inset-0 z-[1] pointer-events-none">
+        <SceneManager sceneId={sceneId} coverUrl={currentSong?.cover} quality={quality} />
+      </div>
 
       {/* ===== 顶部栏（自动隐藏）：返回 + 场景 dock + BPM ===== */}
       <AnimatePresence>
@@ -215,39 +196,40 @@ export default function VisualizerPage() {
         )}
       </AnimatePresence>
 
-      {/* ===== 中央内容：圆环 + 歌名 + 滚动歌词 ===== */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 pb-28 pt-20">
-        {/* 封面圆环（点击切换场景） */}
-        <div ref={beatScaleRef} className="will-change-auto">
+      {/* ===== 中央内容：左（圆环）右（歌名+歌词）双栏 ===== */}
+      <div className="relative z-10 h-full flex flex-col lg:flex-row items-center justify-center lg:justify-center gap-[3vh] lg:gap-14 px-6 pt-20 pb-[max(76px,calc(env(safe-area-inset-bottom,0px)+76px))] viz-center">
+        {/* 左：封面圆环（点击切换场景） */}
+        <div ref={beatScaleRef} className="will-change-auto ring-wrap shrink-0">
           <div className="relative flex items-center justify-center cursor-pointer" onClick={cycleScene}>
-            <CircularVisualizer size={270} showCover coverUrl={currentSong?.cover} />
+            <CircularVisualizer size={260} showCover coverUrl={currentSong?.cover} />
           </div>
         </div>
 
-        {/* 歌名 / 歌手 */}
-        <div className="mt-7 text-center max-w-3xl">
-          <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg leading-snug break-words">
-            {currentSong?.title ?? '选一首歌，让音乐看得见'}
-          </h1>
-          <p className="text-lg text-white/60 mt-2">{currentSong?.artist ?? '雅枫音乐 · 沉浸式可视化'}</p>
+        {/* 右：歌名/歌手 + 歌词（页面主体，占最高） */}
+        <div className="flex flex-col items-center lg:items-start justify-center w-full lg:w-auto lg:flex-1 lg:max-w-2xl min-w-0 gap-2 viz-right">
+          <div className="text-center lg:text-left max-w-full">
+            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg leading-snug break-words">
+              {currentSong?.title ?? '选一首歌，让音乐看得见'}
+            </h1>
+            <p className="text-lg text-white/60 mt-2">{currentSong?.artist ?? '雅枫音乐 · 沉浸式可视化'}</p>
+          </div>
+
+          {/* 内嵌滚动歌词（flex 分配高度 + 上下限约束） */}
+          <LyricsScroller
+            neteaseId={currentSong?.neteaseId}
+            lineHeight={46}
+            className="w-full viz-lyrics flex-1 min-h-[140px] max-h-[42vh]"
+          />
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: showControls ? 0.35 : 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-xs text-white/60 text-center lg:text-left"
+          >
+            点击圆环切换场景 · 点击歌词跳转播放位置
+          </motion.p>
         </div>
-
-        {/* 内嵌滚动歌词（融入背景，无浮层边框） */}
-        <LyricsScroller
-          neteaseId={currentSong?.neteaseId}
-          height={190}
-          lineHeight={46}
-          className="mt-4 w-full max-w-2xl"
-        />
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: showControls ? 0.35 : 0 }}
-          transition={{ duration: 0.5 }}
-          className="mt-1 text-xs text-white/60"
-        >
-          点击圆环切换场景 · 点击歌词跳转播放位置
-        </motion.p>
       </div>
 
       {/* ===== 底部控制舱（唯一控制区） ===== */}
@@ -258,10 +240,10 @@ export default function VisualizerPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 36 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
-            className="absolute bottom-0 left-0 right-0 z-50 px-5 pb-7 flex justify-center"
+            className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-[max(20px,env(safe-area-inset-bottom,0px))] flex justify-center viz-dock"
           >
             <div
-              className="w-full max-w-2xl rounded-3xl border border-white/10 backdrop-blur-2xl px-6 pt-4 pb-5"
+              className="w-full max-w-xl rounded-3xl border border-white/10 backdrop-blur-2xl px-6 pt-3 pb-3.5"
               style={{
                 background: 'color-mix(in srgb, var(--color-dark-base) 72%, transparent)',
                 boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
@@ -271,7 +253,7 @@ export default function VisualizerPage() {
               <div
                 ref={progressContainerRef}
                 className="w-full h-1.5 bg-white/10 rounded-full cursor-pointer relative group select-none touch-none"
-                {...progressDrag.start}
+                onPointerDown={progressDrag.start}
               >
                 <div
                   className="h-full rounded-full relative"
@@ -285,13 +267,13 @@ export default function VisualizerPage() {
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-white/40 mt-2 tabular-nums">
+              <div className="flex justify-between text-xs text-white/40 mt-1.5 tabular-nums">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
 
               {/* 控制键 */}
-              <div className="flex items-center justify-center gap-7 mt-3">
+              <div className="flex items-center justify-center gap-5 mt-2">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -318,7 +300,7 @@ export default function VisualizerPage() {
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.92 }}
                   onClick={handlePlayPause}
-                  className="p-6 rounded-full transition-all"
+                  className="w-16 h-16 shrink-0 rounded-full flex items-center justify-center transition-all"
                   style={{
                     background:
                       'linear-gradient(135deg, var(--color-primary, #a855f7), var(--color-accent, #06b6d4))',
@@ -327,11 +309,11 @@ export default function VisualizerPage() {
                   title={isPlaying ? '暂停' : '播放'}
                 >
                   {isPlaying ? (
-                    <svg className="w-8 h-8 text-white on-accent" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-7 h-7 text-white on-accent" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   ) : (
-                    <svg className="w-8 h-8 text-white on-accent ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-7 h-7 text-white on-accent ml-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   )}

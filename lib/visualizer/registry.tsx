@@ -4,8 +4,7 @@
  * 可视化场景注册表 - 全部场景的唯一定义处
  * （收敛旧版散落在 3 个文件的 VisualizerMode union 与名称/图标映射）
  *
- * - placement: 'fullscreen' 场景由 SceneManager 铺全屏背景层；'center' 场景无背景层，
- *   中央视觉由沉浸页自身绘制（故其 Component 可缺省）
+ * - 每个场景都是一层全屏背景（fixed inset-0），沉浸页中央圆环由其自身渲染，不在此列
  * - quality: 'heavy' 场景（WebGL）一律 next/dynamic({ ssr:false }) 懒加载，
  *   由 SceneManager 保证同屏最多 1 个全屏 WebGL context
  */
@@ -20,9 +19,8 @@ export interface VisualizerScene {
   id: string;
   name: string;
   icon: string;
-  placement: 'center' | 'fullscreen';
   quality: 'light' | 'heavy';
-  Component?: ComponentType<SceneProps>;
+  Component: ComponentType<SceneProps>;
 }
 
 // ---- heavy 场景：懒加载 + 禁 SSR ----
@@ -59,6 +57,18 @@ const FlowSpectrum = dynamic(() => import('@/components/visualizer/scenes/FlowSp
   loading: sceneLoading,
 });
 
+// light 全屏场景：同心环形频谱光晕
+const RingHalo = dynamic(() => import('@/components/visualizer/scenes/RingHaloBackground').then((m) => m.RingHaloBackground), {
+  ssr: false,
+  loading: sceneLoading,
+});
+
+// light 全屏场景：贴底「声景地平线」频谱
+const HorizonSpectrum = dynamic(() => import('@/components/visualizer/FullBleedScene').then((m) => m.FullBleedScene), {
+  ssr: false,
+  loading: sceneLoading,
+});
+
 function R3FParticlesScene() {
   return <ParticleBackground className="absolute inset-0" particleCount={2000} />;
 }
@@ -79,16 +89,24 @@ function FlowScene() {
   return <FlowSpectrum />;
 }
 
+function RingHaloScene() {
+  return <RingHalo />;
+}
+
+function HorizonScene() {
+  return <HorizonSpectrum heightRatio={0.3} opacity={0.6} />;
+}
+
 // ---- 注册表 ----
 
 export const SCENES: VisualizerScene[] = [
-  { id: 'flow', name: '流光频谱', icon: '🌊', placement: 'fullscreen', quality: 'light', Component: FlowScene },
-  { id: 'circular', name: '环形音浪', icon: '🔮', placement: 'center', quality: 'light' },
-  { id: 'spectrum', name: '频谱分析', icon: '📊', placement: 'center', quality: 'light' },
-  { id: 'particles', name: '粒子宇宙', icon: '✨', placement: 'fullscreen', quality: 'heavy', Component: R3FParticlesScene },
-  { id: 'stardust', name: '星尘漂浮', icon: '🌌', placement: 'fullscreen', quality: 'heavy', Component: OglParticlesScene },
-  { id: 'threads', name: '丝弦波动', icon: '🎻', placement: 'fullscreen', quality: 'heavy', Component: OglThreadsScene },
-  { id: 'startunnel', name: '星际穿越', icon: '🚀', placement: 'fullscreen', quality: 'heavy', Component: StarTunnelScene },
+  { id: 'flow', name: '流光频谱', icon: '🌊', quality: 'light', Component: FlowScene },
+  { id: 'circular', name: '环形音浪', icon: '🔮', quality: 'light', Component: RingHaloScene },
+  { id: 'spectrum', name: '频谱分析', icon: '📊', quality: 'light', Component: HorizonScene },
+  { id: 'particles', name: '粒子宇宙', icon: '✨', quality: 'heavy', Component: R3FParticlesScene },
+  { id: 'stardust', name: '星尘漂浮', icon: '🌌', quality: 'heavy', Component: OglParticlesScene },
+  { id: 'threads', name: '丝弦波动', icon: '🎻', quality: 'heavy', Component: OglThreadsScene },
+  { id: 'startunnel', name: '星际穿越', icon: '🚀', quality: 'heavy', Component: StarTunnelScene },
 ];
 
 export function getScene(id: string): VisualizerScene {

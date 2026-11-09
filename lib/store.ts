@@ -8,7 +8,8 @@
  * 由消费者直接监听 audioEngine 的音频事件或订阅帧调度器获取。
  */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { desktopStorage } from '@/lib/desktopStorage';
 import type { Track } from './data';
 import type { SongQuality } from './server/netEase';
 import { audioEngine } from './audio/engine';
@@ -223,6 +224,9 @@ export const useMusicStore = create<MusicStore>()(
       setPlayMode: (mode: PlayMode) => set({ playMode: mode }),
 
       toggleLike: (song: Track) => {
+        // 先取翻转前状态：nextLiked = 本次操作后是否为"已喜欢"
+        const willLike = !get().likedTracks.some((t) => t.id === song.id);
+
         set((state) => {
           const exists = state.likedTracks.some((t) => t.id === song.id);
           return {
@@ -231,6 +235,34 @@ export const useMusicStore = create<MusicStore>()(
               : [song, ...state.likedTracks].slice(0, 500),
           };
         });
+
+        // 云端同步（乐观更新：失败回滚并提示）。仅网易云在线歌曲且有登录态时尝试
+        if (!song.neteaseId) return;
+        const musicU =
+          typeof window !== 'undefined' ? localStorage.getItem('yafeng-ncm-music-u') : null;
+        if (!musicU) return; // 未登录：仅本地收藏，不打扰用户
+
+        const nextLiked = willLike;
+        void (async () => {
+          try {
+            const { likeSongNetEase } = await import('@/lib/api');
+            const { toast } = await import('@/lib/toast');
+            const r = await likeSongNetEase(song.neteaseId as number, nextLiked);
+            if (r.ok) {
+              toast(nextLiked ? '已添加到网易云「喜欢的音乐」' : '已从网易云喜欢中移除');
+            } else {
+              // 回滚
+              set((state) => ({
+                likedTracks: nextLiked
+                  ? state.likedTracks.filter((t) => t.id !== song.id)
+                  : [song, ...state.likedTracks].slice(0, 500),
+              }));
+              toast(r.error || '云端收藏失败，仅保留本地记录');
+            }
+          } catch {
+            // 网络异常：静默（本地记录保留）
+          }
+        })();
       },
 
       isLiked: (songId: number) => get().likedTracks.some((t) => t.id === songId),
@@ -239,6 +271,7 @@ export const useMusicStore = create<MusicStore>()(
     }),
     {
       name: 'yafeng-music-player',
+      storage: createJSONStorage(() => desktopStorage),
       version: 1,
       // 只持久化低敏感、可恢复的状态；isPlaying 不持久化（自动播放策略）
       partialize: (state) => ({

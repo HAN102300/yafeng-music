@@ -283,7 +283,25 @@ export default function HomePage() {
         )}
 
         {error && <ErrorBlock message={error} onRetry={load} />}
-        {!error && !data && <LoadingBlock label="正在连接在线曲库..." />}
+        {!error && !data && (
+          <div className="space-y-12">
+            {/* 首页骨架屏 */}
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <motion.div
+                className="w-10 h-10 rounded-full border-3 border-white/20 border-t-accent animate-spin"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+              <p className="text-sm text-white/50">正在连接在线曲库...</p>
+            </div>
+            {/* 显示骨架屏占位 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              {[...Array(4)].map((_, i) => (
+                <div key={`hero-skeleton-${i}`} className="rounded-2xl overflow-hidden border border-white/5 bg-white/5 aspect-[3/4] animate-pulse" />
+              ))}
+            </div>
+          </div>
+        )}
 
         {data && (
           <>
