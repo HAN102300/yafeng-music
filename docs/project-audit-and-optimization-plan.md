@@ -415,3 +415,31 @@
 - `latest.json` 的 platforms 键必须是 `windows-x86_64`（Tauri updater 运行时约定）
 - NSIS 安装包需 zip 后发布（updater 下载的是 zip，解压后运行 setup）
 - GitHub 直连失败时用户的更新检查会静默失败（不影响使用），下轮启动重试
+
+
+### G5.1 自动更新链路实战记录（2026-11-09 已全线打通）
+
+**验证结果**：Release v0.1.2 产出完整 updater 产物集（YaFengMusic_0.1.2_x64-setup.exe + .sig + latest.json），
+`releases/latest/download/latest.json` 返回 version=0.1.2、windows-x86_64 平台签名完整 ✅
+
+**CI 调试六连修（都是真实踩坑，供以后参考）**：
+
+| # | 症状 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | Prepare sidecar 失败 | pwsh 引号内 `(Get-Command node)` 不展开 | 改 `$nodeSrc` 变量 |
+| 2 | npm error Missing script: tauri | tauri-action 内部跑 `npm run tauri build` | package.json 补 `"tauri": "tauri"` |
+| 3 | latest.json 生成失败 | 手写 glob 找不到 sig | 删手写步骤，tauri-action 自动生成 |
+| 4 | NSIS 504 | Actions runner 下载 binary-releases 偶发 504 | workflow 预缓存 NSIS（curl 重试） |
+| 5 | run 无 jobs | Bundle 步骤重复 name 行（YAML 解析失败） | 删重复行 |
+| 6 | "Signature not found for the updater JSON" | **中文 productName** 导致签名文件名匹配失败 | productName 改 `YaFengMusic`（窗口标题仍中文） |
+
+**发版标准流程（最终版）**：
+```
+1. 改代码 → 本地 desktop\build.cmd debug 验证
+2. src-tauri/tauri.conf.json 升 version
+3. git add -A && git commit && git push origin main
+4. git tag v0.1.x && git push origin v0.1.x
+5. 等 Actions 约 10 分钟 → Release 自动产出安装包+latest.json
+6. 老用户客户端启动 8s 后自动弹更新提示
+```
+**注意**：productName 必须保持 ASCII（YaFengMusic），中文显示交给窗口 title 与安装器语言配置。
