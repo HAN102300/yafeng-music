@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@react-three/fiber": "^9.0.0",
