@@ -67,36 +67,3 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: --target x86_64-pc-windows-msvc
-
-      - name: Generate latest.json (updater manifest)
-        shell: pwsh
-        env:
-          VERSION: ${{ github.ref_name }}
-        run: |
-          $v = "$env:VERSION".TrimStart("v")
-          $sig = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig" | Select-Object -First 1
-          $sigContent = Get-Content $sig.FullName -Raw
-          $json = @{
-            version = $v
-            notes = "雅枫音乐 $env:VERSION"
-            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-            platforms = @{
-              "windows-x86_64" = @{
-                signature = $sigContent
-                url = "https://github.com/HAN102300/yafeng-music/releases/download/$env:VERSION/雅枫音乐_$($v)_x64-setup.exe.zip"
-              }
-            }
-          } | ConvertTo-Json -Depth 5
-          Set-Content -Path "latest.json" -Value $json -Encoding utf8
-
-      - name: Zip installer (updater expects zip)
-        shell: pwsh
-        run: |
-          Compress-Archive -Path "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe" -DestinationPath "雅枫音乐_$("$env:VERSION".TrimStart('v'))_x64-setup.exe.zip" -Force
-
-      - name: Upload latest.json + zip to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            latest.json
-            雅枫音乐_*_x64-setup.exe.zip
