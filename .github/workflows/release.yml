@@ -50,7 +50,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "src-tauri/binaries" | Out-Null
-          Copy-Item "(Get-Command node).Source" "src-tauri/binaries/node-x86_64-pc-windows-msvc.exe" -Force
+          $nodeSrc = (Get-Command node).Source
+          Copy-Item $nodeSrc "src-tauri/binaries/node-x86_64-pc-windows-msvc.exe" -Force
+          Write-Host "sidecar 源: $nodeSrc"
 
       - name: Bundle (sign updater artifacts)
         uses: tauri-apps/tauri-action@v0
