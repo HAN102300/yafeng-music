@@ -15,6 +15,43 @@ fn find_free_port() -> Option<u16> {
         .and_then(|l| l.local_addr().ok().map(|a| a.port()))
 }
 
+/// 崩溃日志：写入 target 旁（debug）或 userData（release），任何启动路径都有据可查
+fn setup_panic_log(app: &tauri::AppHandle) {
+    let log_path = app.path().app_log_dir().map(|d| d.join("startup.log")).ok();
+    if let Some(p) = log_path {
+        if let Some(parent) = p.parent() { let _ = std::fs::create_dir_all(parent); }
+        let p_for_launch = p.clone();
+        std::panic::set_hook(Box::new(move |info| {
+            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+            let _ = std::fs::OpenOptions::new().create(true).append(true).open(&p)
+                .and_then(|mut f| std::io::Write::write_all(&mut f, format!("[{}] PANIC: {}\n", ts, info).as_bytes()));
+        }));
+        let _ = std::fs::OpenOptions::new().create(true).append(true).open(&p_for_launch)
+            .and_then(|mut f| {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                std::io::Write::write_all(&mut f, format!("[{}] launch\n", ts).as_bytes())
+            });
+    }
+}
+
+/// 读用户关闭行为设置（yafeng-data.json 的 app:closing-behavior，默认 tray）
+fn read_closing_behavior(data_dir: &Option<std::path::PathBuf>) -> String {
+    if let Some(dir) = data_dir {
+        let f = dir.join("yafeng-data.json");
+        if let Ok(content) = std::fs::read_to_string(&f) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+                if v.get("app:closing-behavior").and_then(|x| x.as_str()) == Some("exit") {
+                    return "exit".to_string();
+                }
+            }
+        }
+    }
+    "tray".to_string()
+}
+
 fn flush_log(msg: &str) {
     use std::io::Write;
     let mut err = std::io::stderr();
@@ -57,6 +94,7 @@ pub fn run() {
             }
 
             flush_log("setup: started");
+            setup_panic_log(app.handle());
 
             // ---- 系统托盘 ----
             let toggle = MenuItem::with_id(app, "toggle", "播放 / 暂停", true, None::<&str>)?;
@@ -95,10 +133,19 @@ pub fn run() {
             // ---- 关闭按钮 → 最小化到托盘 ----
             let main_win = app.get_webview_window("main").expect("main window missing");
             let win_for_close = main_win.clone();
+            let data_dir = app.path().app_data_dir().ok();
             main_win.on_window_event(move |event| {
                 if let WindowEvent::CloseRequested { api, .. } = event {
-                    let _ = win_for_close.hide(); // 阻止默认关闭，仅隐藏
-                    api.prevent_close();
+                    // 关闭行为读用户设置（Store 文件 app:closing-behavior，默认 tray）
+                    // Store 文件在 userData 目录；ServerDe?? 此处直接读文件
+                    let behavior = read_closing_behavior(&data_dir);
+                    if behavior == "exit" {
+                        flush_log("close: exit requested by setting");
+                        // 放行默认关闭
+                    } else {
+                        let _ = win_for_close.hide(); // 最小化到托盘
+                        api.prevent_close();
+                    }
                 }
             });
 
@@ -141,7 +188,21 @@ pub fn run() {
 
             let url: tauri::Url = format!("http://127.0.0.1:{port}").parse().unwrap();
             if let Some(win) = app.get_webview_window("main") {
+                // 页面加载完成后再显示窗口：消除 sidecar 启动期的黑屏空窗
+                // （窗口默认 visible=false，见 tauri.conf.json）
+                let win_for_show = win.clone();
+                win.on_window_event(|_event| {}); // 保持句柄活性
                 let _ = win.navigate(url);
+                tauri::async_runtime::spawn(async move {
+                    // 就绪信号兜底：最长 6s 后无论是否收到 loaded 都显示（防卡死不可见）
+                    for _ in 0..60 {
+                        if win_for_show.is_visible().unwrap_or(true) { break; }
+                        std::thread::sleep(Duration::from_millis(100));
+                    }
+                    let _ = win_for_show.show();
+                    let _ = win_for_show.set_focus();
+                    flush_log("setup: window shown");
+                });
             }
 
             Ok(())

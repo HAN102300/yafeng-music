@@ -1,6 +1,6 @@
 [package]
 name = "yafeng-music"
-version = "0.1.2"
+version = "0.1.3"
 description = "雅枫音乐桌面客户端"
 authors = ["YaFeng"]
 license = ""

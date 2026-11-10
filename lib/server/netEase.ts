@@ -6,6 +6,7 @@
  * 并统一收敛非官方接口的调用点。仅供学习研究，不缓存、不持久化任何版权内容。
  */
 import { createCipheriv, randomBytes } from 'crypto';
+import { anonymousHeaders, ensureAnonymousDevice } from './anonymousDevice';
 
 const MODULUS =
   '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7';
@@ -571,115 +572,80 @@ function mergeCookies(jar: string, res: Response): string {
 
 /**
  * 生成扫码登录 unikey。
- * 通道与 music.163.com 网页端扫码完全一致：weapi 加密 + type:1（web 会话），
+ * 通道：明文 /api/ + type:3（与 NeteaseCloudMusicApi/YesPlayMusic 一致），
  * 并先 GET 首页种 cookie、unikey 响应 cookie 一并入罐。
  * （此前的明文 /api/ + type:3 桌面客户端通道已被风控拦截：手机确认后返回
  * 8821「请切换其他登录方式或升级新版本再试」+ 安全环境风险重定向）
  */
 export async function createQrKeyNetEase(): Promise<string | null> {
-  let jar = '';
+  // 纯 api GET 通道（无需 weapi 加密与会话 cookie）。
+  // 2026-11 起网易对 /weapi/login/qrcode/unikey 的无会话请求返回 200 空 body（静默拒绝），
+  // /api/login/qrcode/unikey 仍正常——与 YesPlayMusic 同通道。
   try {
-    // 模拟用户打开登录页：首页种 NMTID 等会话 cookie
-    const home = await upstreamFetch('https://music.163.com/', {
-      headers: { 'User-Agent': UA, Referer: REFERER },
+    await ensureAnonymousDevice(); // 首次调用时注册匿名设备（网易风控要求）
+    const res = await upstreamFetch('https://music.163.com/api/login/qrcode/unikey?type=3&noCheckToken=true', {
+      headers: anonymousHeaders(),
       cache: 'no-store',
     });
-    jar = mergeCookies(jar, home);
-  } catch {
-    /* 种 cookie 失败不阻塞主流程 */
-  }
-
-  const { params, encSecKey } = weapi({ type: 1, noCheckToken: true });
-  const res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/unikey', {
-    method: 'POST',
-    headers: {
-      'User-Agent': UA,
-      Referer: REFERER,
-      Origin: REFERER,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      ...(jar ? { Cookie: jar } : {}),
-    },
-    body: new URLSearchParams({ params, encSecKey }),
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  jar = mergeCookies(jar, res);
-  const json = (await res.json()) as { unikey?: string };
-  const key = json?.unikey ?? null;
-  if (key) {
-    if (qrCookieJars.size > 32) {
-      // 上限清理：淘汰最早入罐的会话（Map 保持插入序）
+    if (!res.ok) return null;
+    const json = (await res.json()) as { code?: number; unikey?: string };
+    const key = json?.unikey ?? null;
+    if (key && qrCookieJars.size > 32) {
       const oldest = qrCookieJars.keys().next().value;
       if (oldest !== undefined) qrCookieJars.delete(oldest);
     }
-    qrCookieJars.set(key, jar);
+    if (key) qrCookieJars.set(key, '');
+    return key;
+  } catch {
+    return null;
   }
-  return key;
 }
 
-/** 轮询扫码状态：weapi + type:1（web 会话，与生成通道同罐同源）。
- * 提取策略与响应形态无关：在「响应 body 原文 + Set-Cookie 头」合并文本上正则搜索，
- * 兼容 cookie 为数组/字符串/嵌套 result 等各种返回形态。 */
+/** 轮询扫码状态：api GET 通道。MUSIC_U 从 Set-Cookie 提取（803 成功时上游返回）。 */
 export async function checkQrKeyNetEase(key: string): Promise<QrCheckResult & { dbg?: string }> {
-  const jar = qrCookieJars.get(key) ?? '';
-  const { params, encSecKey } = weapi({ key, type: 1 });
-  let res: Response;
   try {
-    res = await upstreamFetch('https://music.163.com/weapi/login/qrcode/client/login', {
-      method: 'POST',
-      headers: {
-        'User-Agent': UA,
-        Referer: REFERER,
-        Origin: REFERER,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...(jar ? { Cookie: jar } : {}),
-      },
-      body: new URLSearchParams({ params, encSecKey }),
-      cache: 'no-store',
-    });
+    const res = await upstreamFetch(
+      'https://music.163.com/api/login/qrcode/client/login?key=' + encodeURIComponent(key) + '&type=3',
+      { headers: anonymousHeaders(), cache: 'no-store' }
+    );
+    if (!res.ok) return { code: 801 };
+
+    const rawText = await res.text();
+    const setCookieText =
+      typeof res.headers.getSetCookie === 'function'
+        ? res.headers.getSetCookie().join('; ')
+        : (res.headers.get('set-cookie') ?? '');
+
+    let code: number | undefined;
+    try {
+      code = (JSON.parse(rawText) as { code?: number })?.code;
+    } catch {
+      /* body 非 JSON，走正则 */
+    }
+    if (code === undefined) {
+      const m = /"code"\s*:\s*(\d{3})/.exec(rawText);
+      if (m) code = Number(m[1]);
+    }
+
+    const musicU =
+      /MUSIC_U=([^;\s"']+)/.exec(setCookieText)?.[1] ??
+      /MUSIC_U=([^;\s"']+)/.exec(rawText)?.[1];
+
+    if (code === 800 || (code === 803 && musicU)) qrCookieJars.delete(key);
+
+    if (code === 803 && musicU) return { code: 803, musicU };
+    if (musicU && (code === undefined || code === 200)) {
+      return { code: 803, musicU };
+    }
+
+    const result: QrCheckResult & { dbg?: string } = { code: code ?? 801 };
+    if (code === 803 || (code !== 800 && code !== 801 && code !== 802)) {
+      result.dbg = `body=${rawText.slice(0, 200)} setCookieN=${setCookieText ? setCookieText.split(';').filter((s) => s.includes('=')).length : 0}`;
+    }
+    return result;
   } catch {
     return { code: 801 };
   }
-  if (!res.ok) return { code: 801 };
-
-  const rawText = await res.text();
-  const setCookieText =
-    typeof res.headers.getSetCookie === 'function'
-      ? res.headers.getSetCookie().join('; ')
-      : (res.headers.get('set-cookie') ?? '');
-
-  // 状态码：优先 JSON 顶层 code，异常形态回退正则
-  let code: number | undefined;
-  try {
-    code = (JSON.parse(rawText) as { code?: number })?.code;
-  } catch {
-    /* body 非 JSON，走正则 */
-  }
-  if (code === undefined) {
-    const m = /"code"\s*:\s*(\d{3})/.exec(rawText);
-    if (m) code = Number(m[1]);
-  }
-
-  // MUSIC_U：body 原文与 Set-Cookie 头合并搜索（不假设任何结构）
-  const musicU =
-    /MUSIC_U=([^;\s"']+)/.exec(rawText)?.[1] ??
-    /MUSIC_U=([^;\s"']+)/.exec(setCookieText)?.[1];
-
-  // 终态释放会话罐：确认成功或二维码过期
-  if (code === 800 || (code === 803 && musicU)) qrCookieJars.delete(key);
-
-  if (code === 803 && musicU) return { code: 803, musicU };
-  if (musicU && (code === undefined || code === 200)) {
-    // 未识别的状态码但确实携带登录 cookie：按成功处理
-    return { code: 803, musicU };
-  }
-
-  const result: QrCheckResult & { dbg?: string } = { code: code ?? 801 };
-  // 诊断信息（仅 803 无 cookie 或非预期状态码时附带，帮助定位上游返回形态）
-  if (code === 803 || (code !== 800 && code !== 801 && code !== 802)) {
-    result.dbg = `body=${rawText.slice(0, 200)} setCookieN=${setCookieText ? setCookieText.split(';').filter((s) => s.includes('=')).length : 0}`;
-  }
-  return result;
 }
 
 // ---------- 手机验证码登录 ----------
