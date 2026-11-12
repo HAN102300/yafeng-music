@@ -2,6 +2,19 @@
 
 沉浸式可视化在线音乐播放器，让音乐看得见。基于 Next.js App Router 构建，全站内容接入网易云在线曲库：榜单 / 歌单 / 歌手 / 每日推荐 / 私人 FM 全部真实数据，支持扫码登录、全局背景音乐可视化与丝滑动效。
 
+## 📥 下载桌面客户端
+
+> ### ⚠️ v0.1.2 已知严重缺陷（扫码登录不可用 / 更新强制下载），已被 [v0.1.3](https://github.com/HAN102300/yafeng-music/releases/latest) 修复——请勿下载 v0.1.2！
+> 完整更新内容见 [docs/releases/](docs/releases/)。
+
+**[⬇️ 下载最新版 v0.1.3 安装包](https://github.com/HAN102300/yafeng-music/releases/latest)**（YaFengMusic_x64-setup.exe，36.7 MB，含完整离线能力）
+
+已安装旧版本：启动约 12 秒后会自动提示更新，点击「立即更新」一键升级。
+
+各版本完整变更记录：[docs/CHANGELOG-DESKTOP.md](docs/CHANGELOG-DESKTOP.md) · 逐版本发布说明：[docs/releases/](docs/releases/)
+
+---
+
 ## 功能特性
 
 - **在线曲库全站化**：首页推荐歌单/新歌速递/官方榜单、歌单广场（分类+精品）、歌手墙+歌手主页、真实排行榜、多类型搜索（单曲/歌手/歌单）+ 热搜词 + 搜索历史
