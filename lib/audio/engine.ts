@@ -111,6 +111,17 @@ class AudioEngine {
   }
 
   /**
+   * 从头重播并确保继续播放
+   * 供「切歌」实际选中当前曲时调用（单曲队列循环）：id 不变不会触发
+   * 引擎重载 effect，必须由调用方显式重置进度并恢复播放。
+   */
+  restart(): void {
+    if (!this.audio) return;
+    this.audio.currentTime = 0;
+    if (this.audio.paused) void this.audio.play().catch(() => {});
+  }
+
+  /**
    * 捕获当前帧的分析数据（由帧调度器每帧调用一次）
    * 未初始化时输出静默数据，不报错
    */
@@ -157,3 +168,8 @@ class AudioEngine {
 
 // 单例导出
 export const audioEngine = new AudioEngine();
+
+// 调试/诊断钩子：控制台可直接检查音频元素状态（无副作用）
+if (typeof window !== 'undefined') {
+  (window as unknown as { __AUDIO_ENGINE__: AudioEngine }).__AUDIO_ENGINE__ = audioEngine;
+}

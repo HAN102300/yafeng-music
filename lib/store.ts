@@ -150,6 +150,12 @@ export const useMusicStore = create<MusicStore>()(
               ? playlist.filter((s) => s.id !== currentSong?.id)
               : playlist;
           const pick = candidates[Math.floor(Math.random() * candidates.length)];
+          if (pick.id === currentSong?.id) {
+            // 单曲队列随机仍选中自己：id 不变不会触发引擎重载，显式重播
+            audioEngine.restart();
+            set({ isPlaying: true });
+            return;
+          }
           set({ currentSong: pick, isPlaying: true });
           return;
         }
@@ -159,7 +165,15 @@ export const useMusicStore = create<MusicStore>()(
           : -1;
         // findIndex -1（当前歌不在列表中）时兜底到列表头
         const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % playlist.length;
-        set({ currentSong: playlist[nextIndex], isPlaying: true });
+        const pick = playlist[nextIndex];
+        if (pick.id === currentSong?.id) {
+          // 单曲队列循环：切歌落在当前曲（如私人 FM 单曲队列播完自动切），
+          // 引擎不会因 id 未变而重载，必须显式从头重播
+          audioEngine.restart();
+          set({ isPlaying: true });
+          return;
+        }
+        set({ currentSong: pick, isPlaying: true });
       },
 
       prev: () => {
@@ -181,7 +195,14 @@ export const useMusicStore = create<MusicStore>()(
           : -1;
         const prevIndex =
           currentIndex === -1 ? 0 : (currentIndex - 1 + playlist.length) % playlist.length;
-        set({ currentSong: playlist[prevIndex], isPlaying: true });
+        const pick = playlist[prevIndex];
+        if (pick.id === currentSong?.id) {
+          // 单曲队列上一首同样会选中自己：显式重播
+          audioEngine.restart();
+          set({ isPlaying: true });
+          return;
+        }
+        set({ currentSong: pick, isPlaying: true });
       },
 
       seekTo: (time: number) => {
@@ -301,3 +322,8 @@ export const useMusicStore = create<MusicStore>()(
     }
   )
 );
+
+// 调试/诊断钩子：控制台可直接检查播放状态（无副作用）
+if (typeof window !== 'undefined') {
+  (window as unknown as { __MUSIC_STORE__: typeof useMusicStore }).__MUSIC_STORE__ = useMusicStore;
+}

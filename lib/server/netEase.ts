@@ -806,11 +806,18 @@ export async function getDailyRecommendNetEase(musicU?: string | null): Promise<
 /** 私人 FM（需登录） */
 export async function getPersonalFMNetEase(musicU?: string | null): Promise<NetEaseSong[]> {
   const json = await weapiPost<{
-    data?: { mainSong?: RawSongV3 }[];
+    data?: { mainSong?: RawSongV3; sideSongs?: RawSongV3[] }[];
   }>('/weapi/v1/radio/get', { csrf_token: '' }, musicU);
+  // mainSong + sideSongs 一起入列（官方 FM 一次返回 1 主歌 + 2 伴唱）：
+  // 只取 mainSong 会造成单曲队列，「播完切下一首」永远切到自己的死循环
+  const seen = new Set<number>();
   return (json?.data ?? [])
-    .map((d) => d.mainSong)
-    .filter((s): s is NonNullable<typeof s> => !!s)
+    .flatMap((d) => [d.mainSong, ...(d.sideSongs ?? [])])
+    .filter((s): s is NonNullable<typeof s> => {
+      if (!s || seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    })
     .map(mapSongV3);
 }
 
