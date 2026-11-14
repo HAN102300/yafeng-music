@@ -4,12 +4,11 @@
 
 ## 📥 下载桌面客户端
 
-> ### ⚠️ v0.1.2 已知严重缺陷（扫码登录不可用 / 更新强制下载），已被 [v0.1.3](https://github.com/HAN102300/yafeng-music/releases/latest) 修复——请勿下载 v0.1.2！
-> 完整更新内容见 [docs/releases/](docs/releases/)。
+**[⬇️ 下载最新版 v0.1.4 安装包](https://github.com/HAN102300/yafeng-music/releases/latest)**（YaFengMusic_0.1.4_x64-setup.exe，约 37 MB，含完整离线能力）
 
-**[⬇️ 下载最新版 v0.1.3 安装包](https://github.com/HAN102300/yafeng-music/releases/latest)**（YaFengMusic_x64-setup.exe，36.7 MB，含完整离线能力）
+> ⚠️ 历史版本警示：v0.1.2 存在严重缺陷（扫码登录不可用 / 更新强制下载），请勿下载；v0.1.0–v0.1.3 用户建议直接升级 v0.1.4。
 
-已安装旧版本：启动约 12 秒后会自动提示更新，点击「立即更新」一键升级。
+已安装旧版本：启动约 12 秒后会自动提示更新，点击「立即更新」一键升级；或在 **设置 → 关于 → 检查更新** 手动检查。
 
 各版本完整变更记录：[docs/CHANGELOG-DESKTOP.md](docs/CHANGELOG-DESKTOP.md) · 逐版本发布说明：[docs/releases/](docs/releases/)
 

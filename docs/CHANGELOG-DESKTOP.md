@@ -9,21 +9,7 @@
 
 ---
 
-## [未发布] Web 侧 D 部分（稳定性）——将随下一版本发布
-
-> 以下条目 **web 与客户端均存在**（共享代码库），修复后随版本同步。
-
-| # | 问题 | 影响端 | 修复状态 |
-|---|------|--------|----------|
-| D1 | 断网检测与播放降级（navigator.onLine 监听、断网禁切歌、离线 UI 状态） | Web + 桌面 | 待开发 |
-| D2 | iOS Safari 自动播放兼容（首次手势初始化 AudioContext） | Web（iOS）；桌面 WebView2 无此问题 | 待开发 |
-| D3 | Cookie 登录指引优化（分步骤引导图） | Web + 桌面 | 待开发 |
-| D4 | 音量条/进度条拖拽防抖 | Web + 桌面 | 待开发 |
-| D5 | 音频损坏自动跳曲（5s 未缓冲跳过） | Web + 桌面 | 待开发 |
-| D6 | 错误边界（React ErrorBoundary 包装主应用） | Web + 桌面 | ✅ 已有（app/error.tsx） |
-
----
-
+## [v0.1.4] 2026-11-15,,### ✨ 新增,- 设置页「关于」新增【检查更新】按钮：完整状态机（检查中/最新/发现新版/下载进度/就绪重启/失败）+ 动画；手动检查忽略「跳过此版本」偏好,- 测试钩子：localStorage.setItem('yafeng:update-sim','1') 触发更新流程模拟（不真实下载安装）,- 诊断钩子：window.__MUSIC_STORE__ / __AUDIO_ENGINE__（控制台可查播放状态）,,### 🔐 通道迁移（重大）,- 实测确认：weapi 加密通道已被网易全面收紧（登录态+完整设备指纹仍静默空 body）,- 需登录接口全部迁移明文 /api/ 通道（新增 apiGet helper）：账号信息 / 每日推荐 / 私人FM / 用户歌单,- 私人 FM 明文结构 data[i] 即歌曲（一次 3 首独立歌曲，无 mainSong 包裹），补 mapSearchSong 映射,,### 🐛 修复,- 私人 FM 播完不切歌死循环（单曲队列 next() 选中自身时引擎不重载；store 新增 restart 分支 + FM 明文通道天然 3 曲队列）,- 应用退出后 node sidecar 驻留后台：Windows Job Object（KILL_ON_JOB_CLOSE）兜底 + 退出路径显式 kill,- 匿名设备身份持久化（TAURI_DATA_DIR/anonymous-device.json）：跨重启复用指纹，8821 风控概率大幅下降（实测扫码登录恢复）,- Navbar 断点盲区：768–900px 导航彻底消失；统一断点 900px + 设置齿轮全宽度常驻 + 移动菜单补设置入口,- 搜索页「清空历史」桌面端不生效（误用 localStorage，改 desktopStorage）,- 断网误报「服务异常(502)」：apiFetch 断网快筛 + 502/503/504 归类网络文案,,### 🛡️ Web D 部分稳定性 10 项（Web + 桌面同步）,- 断网检测与播放降级（断网禁切歌、离线横幅）,- iOS Safari 首手势解锁音频（audio.load 零噪音解锁）,- 播放停滞 5s 自动跳曲（队列耗尽则停止提示）,- 版权/VIP 失败原因细分提示（song-url 404 透传上游 fee）,- 倍速与 Web Audio 分析链兼容钳制（超安全区回落 1x）,- 进度/音量拖拽 rAF 帧对齐（同帧事件合并）,- song-url CORS 与缓存头（与 20 分钟 URL 有效期对齐）,- Cookie 登录 5 步指引、8821 风控提示优化,,### 📝 工程记录（G5.2/G5.3）,- A/B 归因实验方法论：git archive 快照 + 诊断钩子 + CDP 注入对照（单曲队列 bug 判定为历史漏洞非 D 引入）,- junction 实验清空 node_modules 事故与恢复：npm 脚本需 ComSpec 环境变量；禁止 junction+rm 组合,- GitHub 直连间歇阻断时 git config http.version=HTTP/1.1 可恢复推送,
 ## [v0.1.3] 2026-11-11
 
 ### 🔐 登录修复（重大）
