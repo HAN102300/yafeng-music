@@ -25,7 +25,7 @@ import {
 import type { NetEasePlaylist, NetEaseArtist, NetEaseSong, NetEaseToplist } from '@/lib/server/netEase';
 import type { Track } from '@/lib/data';
 import { useMusicStore } from '@/lib/store';
-import { useNcmProfile } from '@/lib/ncmAuth';
+import { useNcmProfile, getMusicU } from '@/lib/ncmAuth';
 import { getTheme } from '@/lib/themes';
 import { toast } from '@/lib/toast';
 import { useQualityTier } from '@/hooks/useQualityTier';
@@ -115,7 +115,12 @@ export default function HomePage() {
       playQueueFrom(songs.map(toTrack), 0);
       toast('私人 FM 已开播 🎧', 'success');
     } catch {
-      toast('私人 FM 暂不可用（需要登录网易云账号）', 'error');
+      // 未登录与「已登录但上游风控/网络异常拿不到内容」分开提示
+      if (!getMusicU()) {
+        toast('私人 FM 暂不可用（需要登录网易云账号）', 'error');
+      } else {
+        toast('私人 FM 暂时没有推荐内容（上游风控或网络异常，稍后再试）', 'error');
+      }
     } finally {
       setFmLoading(false);
     }

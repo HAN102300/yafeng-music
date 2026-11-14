@@ -224,6 +224,12 @@ pub fn run() {
             // ---- 内嵌 Next 服务器（方案 B sidecar）----
             let port = find_free_port().ok_or("no free port")?;
             let server_dir = app.path().resolve("resources/next-server", BaseDirectory::Resource)?;
+            // userData 目录传给 sidecar：匿名设备身份持久化（跨重启复用同一设备指纹降风控）
+            let data_dir_str = app
+                .path()
+                .app_data_dir()
+                .map(|d| d.to_string_lossy().into_owned())
+                .unwrap_or_default();
             let (mut rx, child) = app
                 .shell()
                 .sidecar("node")?
@@ -232,6 +238,7 @@ pub fn run() {
                 .env("HOSTNAME", "127.0.0.1")
                 .env("NODE_ENV", "production")
                 .env("NEXT_TELEMETRY_DISABLED", "1")
+                .env("TAURI_DATA_DIR", data_dir_str.clone())
                 .current_dir(&server_dir)
                 .spawn()?;
             flush_log(&format!("setup: sidecar on port {}", port));

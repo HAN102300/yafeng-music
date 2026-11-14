@@ -6,7 +6,7 @@
  * 并统一收敛非官方接口的调用点。仅供学习研究，不缓存、不持久化任何版权内容。
  */
 import { createCipheriv, randomBytes } from 'crypto';
-import { anonymousHeaders, ensureAnonymousDevice } from './anonymousDevice';
+import { anonymousHeaders, ensureAnonymousDevice, mergeUpstreamCookie } from './anonymousDevice';
 
 const MODULUS =
   '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7';
@@ -319,16 +319,20 @@ function mapArtist(a: RawArtist): NetEaseArtist {
 /** 登录态请求头（MUSIC_U 透传） */
 function authHeaders(musicU?: string | null): Record<string, string> {
   const h: Record<string, string> = { 'User-Agent': UA, Referer: REFERER };
-  if (musicU) h.Cookie = `MUSIC_U=${musicU}`;
+  // 设备指纹 + 登录态叠加：只带 MUSIC_U 的裸请求网易也风控
+  // （如 /v1/radio/get 会静默返回空 data，表现为 FM「已登录却拿不到歌」）
+  const cookie = mergeUpstreamCookie(musicU);
+  if (cookie) h.Cookie = cookie;
   return h;
 }
 
-/** weapi POST（可带登录态） */
+/** weapi POST（可带登录态；请求前确保匿名设备指纹就绪） */
 async function weapiPost<T>(
   path: string,
   data: object,
   musicU?: string | null
 ): Promise<T | null> {
+  await ensureAnonymousDevice();
   const { params, encSecKey } = weapi(data);
   const body = new URLSearchParams({ params, encSecKey });
   const res = await upstreamFetch(`https://music.163.com${path}`, {

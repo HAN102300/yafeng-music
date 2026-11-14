@@ -32,6 +32,10 @@ export class ApiError extends Error {
 
 /** 统一 fetch：超时 + 错误归一化。附带网易云登录态（如已登录） */
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  // 断网快筛：navigator.offline 时不再发出注定失败的请求（服务端调上游必然 502）
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new ApiError('当前已断开网络，恢复连接后再试', 'network');
+  }
   const headers = new Headers(init?.headers);
   const musicU = typeof window !== 'undefined' ? localStorage.getItem('yafeng-ncm-music-u') : null;
   if (musicU) headers.set('x-ncm-music-u', musicU);
@@ -39,7 +43,11 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-  } catch {
+  } catch (err) {
+    // 断网导致的 fetch 失败与超时统一归类 network（页面据此显示「网络」而非「服务异常」）
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new ApiError('当前已断开网络，恢复连接后再试', 'network');
+    }
     throw new ApiError('网络连接失败或请求超时，请稍后重试', 'network');
   }
   if (!res.ok) {
