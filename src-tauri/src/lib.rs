@@ -1,13 +1,81 @@
 use std::net::TcpListener;
 use std::time::Duration;
 use tauri::{
-    Manager, WindowEvent,
+    Emitter, Listener, Manager, WindowEvent,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     path::BaseDirectory,
 };
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
+
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::{
+    AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    SetInformationJobObject,
+};
+#[cfg(windows)]
+use windows::Win32::Foundation::HANDLE;
+
+/// 把 sidecar 挂进 Windows Job Object（KILL_ON_JOB_CLOSE）：
+/// 宿主进程无论正常退出、崩溃还是被任务管理器强杀，OS 都会自动回收 node sidecar，
+/// 从根上杜绝「退出软件后 node.exe 驻留后台」的孤儿进程。
+#[cfg(windows)]
+fn bind_job_object(child_pid: u32) {
+    unsafe {
+        let job = match CreateJobObjectW(
+            None::<*const windows::Win32::Security::SECURITY_ATTRIBUTES>,
+            windows::core::PCWSTR::null(),
+        ) {
+            Ok(h) => h,
+            Err(e) => {
+                flush_log(&format!("job object create failed: {}", e));
+                return;
+            }
+        };
+        let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if let Err(e) = SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            &info as *const _ as *const core::ffi::c_void,
+            std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+        ) {
+            flush_log(&format!("job object set failed: {}", e));
+            return;
+        }
+        // 打开子进程句柄（TAURI_SIDECAR 权限足够 PROCESS_SET_QUOTA | PROCESS_TERMINATE）
+        let ok = OpenProcessForJob(child_pid).and_then(|h| {
+            let r = AssignProcessToJobObject(job, h);
+            let _ = windows::Win32::Foundation::CloseHandle(h);
+            r
+        });
+        if let Err(e) = ok {
+            flush_log(&format!("job object assign failed: {}", e));
+        } else {
+            flush_log("sidecar bound to job object (kill-on-close)");
+            // 故意不 CloseHandle(job)：job 句柄随宿主进程退出关闭时触发 KILL_ON_JOB_CLOSE
+        }
+    }
+}
+
+#[cfg(windows)]
+fn OpenProcessForJob(pid: u32) -> windows::core::Result<HANDLE> {
+    use windows::Win32::System::Threading::{
+        OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
+    };
+    unsafe {
+        OpenProcess(
+            PROCESS_SET_QUOTA | PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION,
+            false,
+            pid,
+        )
+    }
+}
+
+#[cfg(not(windows))]
+fn bind_job_object(_child_pid: u32) {}
 
 fn find_free_port() -> Option<u16> {
     TcpListener::bind("127.0.0.1:0")
@@ -117,6 +185,8 @@ pub fn run() {
                         "show" => show_main(app),
                         "quit" => {
                             flush_log("tray: quit requested");
+                            app.emit("yafeng:exit-cleanup", "").ok();
+                            std::thread::sleep(Duration::from_millis(150));
                             app.exit(0);
                         }
                         _ => {}
@@ -133,14 +203,16 @@ pub fn run() {
             // ---- 关闭按钮 → 最小化到托盘 ----
             let main_win = app.get_webview_window("main").expect("main window missing");
             let win_for_close = main_win.clone();
+            let app_for_close = app.handle().clone();
             let data_dir = app.path().app_data_dir().ok();
             main_win.on_window_event(move |event| {
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     // 关闭行为读用户设置（Store 文件 app:closing-behavior，默认 tray）
-                    // Store 文件在 userData 目录；ServerDe?? 此处直接读文件
                     let behavior = read_closing_behavior(&data_dir);
                     if behavior == "exit" {
                         flush_log("close: exit requested by setting");
+                        app_for_close.emit("yafeng:exit-cleanup", "").ok();
+                        std::thread::sleep(Duration::from_millis(150));
                         // 放行默认关闭
                     } else {
                         let _ = win_for_close.hide(); // 最小化到托盘
@@ -152,7 +224,7 @@ pub fn run() {
             // ---- 内嵌 Next 服务器（方案 B sidecar）----
             let port = find_free_port().ok_or("no free port")?;
             let server_dir = app.path().resolve("resources/next-server", BaseDirectory::Resource)?;
-            let (mut rx, _child) = app
+            let (mut rx, child) = app
                 .shell()
                 .sidecar("node")?
                 .args(["server.js"])
@@ -163,6 +235,21 @@ pub fn run() {
                 .current_dir(&server_dir)
                 .spawn()?;
             flush_log(&format!("setup: sidecar on port {}", port));
+
+            // Job Object 兜底：宿主任何形式的退出（含崩溃/强杀）都让 OS 回收 sidecar
+            bind_job_object(child.pid());
+
+            // 保存 sidecar 句柄供退出路径显式 kill（双保险）
+            let sidecar_kill = std::sync::Arc::new(std::sync::Mutex::new(Some(child)));
+            let kill_for_exit = sidecar_kill.clone();
+            app.listen_any("yafeng:exit-cleanup", move |_event| {
+                if let Ok(mut guard) = kill_for_exit.lock() {
+                    if let Some(c) = guard.take() {
+                        flush_log("exit-cleanup: killing sidecar");
+                        let _ = c.kill();
+                    }
+                }
+            });
 
             let port = port;
             tauri::async_runtime::spawn(async move {

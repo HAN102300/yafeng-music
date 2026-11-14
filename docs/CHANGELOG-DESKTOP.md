@@ -78,3 +78,26 @@
 - 首个桌面客户端发布（Tauri 2 + Next standalone sidecar 架构）
 - 无边框窗口 + 自定义标题栏 + 系统托盘 + 单实例锁
 - 离线完整运行（23 个 API 路由本地化）
+
+
+## G5.2 经验教训：A/B 归因实验与环境事故（2026-11-14）
+
+### 单曲队列死循环 bug 归因（结论：历史漏洞，非 D 部分引入）
+- 现象：私人 FM / 可视化页开播（队列仅 1 首）播完后不切歌、进度满格、播放按钮恒亮「播放中」。
+- 根因链：FM 上游 /v1/radio/get 返回 mainSong+sideSongs，服务端只取 mainSong → 单曲队列 →
+  ended → next() 算出 (0+1)%1=0 选中同一首 → GlobalAudioEngine 切歌 effect 依赖
+  currentSong?.id，id 不变不重跑 → 卡死在结尾。随机模式「单曲队列除外」注释早有伏笔。
+- 归因方法：git archive f613ba5（D 改动前）解压快照 + TEMP-DIAG 钩子 + 无头 Chrome CDP
+  注入同一场景。旧代码同场景 paused=true/ct=5.00 卡死复现 → 与 D 无关。修复走 store
+  restart 分支 + FM sideSongs 入列（9f1e2a8）。
+- 教训：**「桌面端正常」不能作为回归依据**——桌面端跑的是旧安装包，不包含 web 最新改动；
+  任何 web 回归验证必须在最新源码上做。多首队列掩盖单首队列的路径是长期盲区。
+
+### 环境事故：junction 实验清空 node_modules（已恢复）
+- 经过：为做 A/B 实验在 worktree 建 node_modules junction（mklink /J），worktree rm --force
+  时跟随 junction 删除目标内容，主仓 node_modules 被清空。
+- 恢复：npm ci（387 包）+ npm install --ignore-scripts 补 sharp/@img 平台二进制；tsc 通过。
+- 附加发现：宿主剥离的环境变量缺 **ComSpec/PATHEXT** 时，npm 的 install 脚本
+  （promise-spawn）直接 ERR_INVALID_ARG_TYPE——以后 npm 需显式注入 ComSpec。
+- 铁律：**永久禁止对 node_modules 建任何 junction/symlink 再 rm**；实验目录一律用
+  git archive 快照 + 绝对路径引用主仓依赖，或在独立 clone 中操作。
