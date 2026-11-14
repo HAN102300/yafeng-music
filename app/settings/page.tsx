@@ -15,6 +15,7 @@ import { useMusicStore, QUALITY_OPTIONS, RATE_OPTIONS } from '@/lib/store';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useNcmProfile } from '@/lib/ncmAuth';
 import { desktopStorage } from '@/lib/desktopStorage';
+import { CheckUpdateButton } from '@/components/updater/CheckUpdateButton';
 
 type ClosingBehavior = 'tray' | 'exit';
 
@@ -195,6 +196,8 @@ export default function SettingsPage() {
             <p className="text-xs text-white/30 pt-1">仅供学习研究，不缓存、不持久化任何版权内容；播放能力来自网易云音乐公开接口。</p>
           </div>
         </div>
+        {/* 手动检查更新（仅桌面端渲染；完整状态流转 + 动画） */}
+        <CheckUpdateButton />
       </Section>
 
       <div className="text-center py-6">
