@@ -13,6 +13,7 @@ import { useNcmProfile, clearLogin } from '@/lib/ncmAuth';
 import { fetchUserPlaylists } from '@/lib/api';
 import type { NetEasePlaylist } from '@/lib/server/netEase';
 import { toast } from '@/lib/toast';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 
 /** 桌面端无边框窗口：在导航栏空白处按下拖拽移动窗口（交互元素除外） */
@@ -46,6 +47,7 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState<NetEasePlaylist[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const { online } = useNetworkStatus();
 
   // 监听滚动
   useEffect(() => {
@@ -89,6 +91,12 @@ export default function Navbar() {
 
   return (
     <>
+      {/* 离线状态横幅：在线时隐藏 */}
+      {!online && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500/90 text-black text-xs text-center py-1 font-medium">
+          ⛔ 网络已断开 · 搜索/切歌不可用，已缓存页面仍可浏览
+        </div>
+      )}
       <nav
         onMouseDown={startWindowDrag}
         className={`
@@ -99,6 +107,7 @@ export default function Navbar() {
             ? 'py-2 shadow-glass'
             : 'py-4'
           }
+          ${online ? '' : 'pt-8'}
         `}
         style={{
           background: scrolled ? 'var(--panel-nav-bg)' : 'transparent',

@@ -56,8 +56,11 @@ function SearchContent() {
   const [history, setHistory] = useState<string[]>([]);
 
   /** 写入历史（去重、上限 10 条）并刷新 state；持久化到 desktopStorage */
-  const pushHistory = useCallback(async (q: string): Promise<string[]> => {
+  const pushHistory = useCallback(async (raw: string): Promise<string[]> => {
+    const q = raw.trim();
+    if (!q) return readHistory();
     const list = await readHistory();
+    // 连续相同搜索去重（含与既有条目的全等比较），置顶不重复入列
     const next = [q, ...list.filter((h) => h !== q)].slice(0, 10);
     await desktopStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     return next;
@@ -66,6 +69,7 @@ function SearchContent() {
   /** 清空历史 */
   const clearHistory = useCallback(async () => {
     await desktopStorage.removeItem(HISTORY_KEY);
+    setHistory([]);
   }, []);
 
   useEffect(() => {
@@ -189,10 +193,7 @@ function SearchContent() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-white/40">搜索历史</p>
                   <button
-                    onClick={() => {
-                      localStorage.removeItem(HISTORY_KEY);
-                      setHistory([]);
-                    }}
+                    onClick={() => void clearHistory()}
                     className="text-xs text-white/30 hover:text-white/60 transition-colors"
                   >
                     清空

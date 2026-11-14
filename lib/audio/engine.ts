@@ -92,6 +92,17 @@ class AudioEngine {
     }
   }
 
+  /**
+   * 倍速是否可安全应用
+   * 经 Web Audio MediaElementSource 输出的音频，部分内核（Chromium 旧版 /
+   * iOS WebKit）在高倍速下会出现破音、变速失真；分析链建立后限制在实测
+   * 稳定的 0.5x~1.5x 区间。未接入分析链时走浏览器原生路径，任意倍速都稳定。
+   */
+  isRateSafe(rate: number): boolean {
+    if (!this.ctx || !this.connected) return true;
+    return rate >= 0.5 && rate <= 1.5;
+  }
+
   /** 跳转播放位置（秒） */
   seek(time: number): void {
     if (this.audio && isFinite(time)) {

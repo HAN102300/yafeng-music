@@ -299,16 +299,38 @@ export async function fetchAlbumDetail(id: number): Promise<{
 
 // ---------- 播放地址 / 歌词 ----------
 
-export async function fetchSongUrl(id: number, level: SongQuality = 'standard'): Promise<SongUrlResult | null> {
+/**
+ * 解析播放地址，带完整版权信息。
+ * 解析失败（无 url）时也会带上上游返回的 fee（VIP=1/4），供调用方区分
+ * 「VIP 专属」「版权下架」「网络异常」三类失败原因。
+ * 不走 apiFetch：song-url 的 404 是「无可用音源」而非服务异常，需读 body 中的 fee。
+ */
+export async function fetchSongUrlWithInfo(
+  id: number,
+  level: SongQuality = 'standard'
+): Promise<(SongUrlResult & { fee: number }) | null> {
+  const headers = new Headers();
+  const musicU = typeof window !== 'undefined' ? localStorage.getItem('yafeng-ncm-music-u') : null;
+  if (musicU) headers.set('x-ncm-music-u', musicU);
   try {
-    const json = await apiFetch<SongUrlResult & { error?: string }>(
-      `/api/song-url?id=${id}&level=${level}`
-    );
-    return json.url ? json : null;
+    const res = await fetch(`/api/song-url?id=${id}&level=${level}`, {
+      headers,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    const json = (await res.json().catch(() => ({}))) as SongUrlResult & { error?: string };
+    if (res.ok && json.url) return { url: json.url, br: json.br, fee: json.fee ?? 0 };
+    // 无可用地址（404）：带上游 fee 供调用方区分 VIP/版权下架
+    if (typeof json.fee === 'number') return { url: '', br: 0, fee: json.fee };
+    return null;
   } catch {
-    // 取不到播放地址（VIP/版权限制是常态）对调用方表现为 null
+    // 网络/服务异常：对调用方表现为 null
     return null;
   }
+}
+
+export async function fetchSongUrl(id: number, level: SongQuality = 'standard'): Promise<SongUrlResult | null> {
+  const info = await fetchSongUrlWithInfo(id, level);
+  return info?.url ? { url: info.url, br: info.br, fee: info.fee } : null;
 }
 
 export async function fetchLyricText(id: number): Promise<string | null> {

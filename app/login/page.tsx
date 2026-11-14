@@ -112,7 +112,8 @@ export default function LoginPage() {
             clearInterval(pollRef.current);
             console.warn('[qr] 8821 风控拦截，诊断:', res.dbg);
             setQrState('error');
-            toast('网易云风控拦截了本次扫码，可改用「手机验证码」或「Cookie」通道登录', 'error');
+            toast('网易云风控拦截了本次扫码，请改用「Cookie」通道登录（最稳定）', 'error');
+            setDiag('8821 风控拦截 · Cookie 通道不受影响，切换上方标签即可');
           }
         } catch {
           /* 单次轮询失败忽略，下一轮继续 */
@@ -244,7 +245,7 @@ export default function LoginPage() {
     scanned: '✓ 已扫码，请在手机上确认登录',
     success: '登录成功，正在跳转...',
     expired: '二维码已过期',
-    error: '扫码通道暂不可用，试试其他登录方式',
+    error: '扫码通道暂不可用（可能被风控拦截），请改用下方「Cookie」或「手机验证码」登录',
   };
 
   const inputCls =
@@ -469,12 +470,21 @@ export default function LoginPage() {
                 >
                   {cookieBusy ? '校验中...' : '登录'}
                 </button>
-                <p className="text-[11px] text-white/30 leading-relaxed text-center">
-                  获取方式：浏览器打开 music.163.com 并登录 → F12 → 应用/Application → Cookie →
-                  music.163.com → 复制 MUSIC_U 的值粘贴到上方。
-                  <br />
-                  该通道不经过扫码风控，最稳定。
-                </p>
+                <details className="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                  <summary className="text-[11px] text-white/45 cursor-pointer select-none hover:text-white/70 transition-colors">
+                    📖 如何获取 MUSIC_U？（点击展开分步指引）
+                  </summary>
+                  <ol className="mt-2 space-y-1 text-[11px] text-white/40 leading-relaxed list-decimal list-inside">
+                    <li>电脑浏览器打开 <span className="text-white/60 font-mono">music.163.com</span> 并登录你的账号</li>
+                    <li>按 <span className="text-white/60 font-mono">F12</span> 打开开发者工具，切到「应用 / Application」标签</li>
+                    <li>左侧找到「Cookie」→ 点击 <span className="text-white/60 font-mono">https://music.163.com</span></li>
+                    <li>在列表中找到 <span className="text-white/60 font-mono text-acc">MUSIC_U</span>，双击复制它的「值」</li>
+                    <li>回到本页粘贴到上方输入框，点击「登录」</li>
+                  </ol>
+                  <p className="mt-2 text-[10px] text-white/30 leading-relaxed">
+                    提示：直接粘贴完整 Cookie 字符串也可以，会自动提取其中的 MUSIC_U。该通道不经过扫码风控，最稳定。
+                  </p>
+                </details>
                 {cookieMsg && <p className="text-xs text-white/45 text-center">{cookieMsg}</p>}
               </div>
             )}

@@ -13,10 +13,19 @@ export async function GET(request: NextRequest) {
   }
   try {
     const result = await getSongUrlNetEase(id, level);
-    if (!result) {
-      return NextResponse.json({ error: 'no url' }, { status: 404 });
+    if (!result || !result.url) {
+      // 无可用地址：404 但带上游 fee（VIP=1/4），前端据此区分失败原因
+      return NextResponse.json(
+        { error: 'no url', fee: result?.fee ?? 0 },
+        { status: 404 }
+      );
     }
-    return NextResponse.json(result);
+    // 网易云返回的音频重定向域名兼容 CORS：显式放开，使 <audio crossorigin> 加载不报错
+    const res = NextResponse.json(result);
+    res.headers.set('Access-Control-Allow-Origin', '*');
+    // URL 与缓存余量对齐（约 20 分钟有效期），避免共享缓存下发过期地址
+    res.headers.set('Cache-Control', 'public, max-age=1080');
+    return res;
   } catch (err) {
     console.error('[api/song-url]', err);
     return NextResponse.json({ error: 'failed' }, { status: 502 });

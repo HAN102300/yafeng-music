@@ -5,6 +5,7 @@
  */
 import { motion } from 'framer-motion';
 import { useMusicStore, QUALITY_OPTIONS, RATE_OPTIONS } from '@/lib/store';
+import { audioEngine } from '@/lib/audio/engine';
 
 interface PlayerSettingsMenuProps {
   onClose: () => void;
@@ -68,6 +69,11 @@ export function PlayerSettingsMenu({ onClose }: PlayerSettingsMenuProps) {
               key={r}
               onClick={() => {
                 setPlaybackRate(r);
+                // Web Audio 分析链下高倍速会破音：立即回落音频元素实际倍速
+                if (!audioEngine.isRateSafe(r)) {
+                  const audio = audioEngine.getAudio();
+                  if (audio) audio.playbackRate = 1;
+                }
                 onClose();
               }}
               className={`px-1 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${

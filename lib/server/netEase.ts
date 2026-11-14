@@ -208,7 +208,9 @@ export async function getSongUrlNetEase(
   if (!res.ok) return null;
   const json = (await res.json()) as { data?: RawUrlData[] };
   const d = json?.data?.[0];
-  if (!d?.url || d.code !== 200) return null;
+  if (!d || d.code !== 200) return null;
+  // 无 url 但有元数据：仍返回 fee（VIP=1/4），供上层区分「VIP 专属」「版权下架」
+  if (!d.url) return { url: '', br: d.br ?? 0, fee: d.fee ?? 0 };
   return { url: toHttps(d.url), br: d.br ?? 128000, fee: d.fee ?? 0 };
 }
 

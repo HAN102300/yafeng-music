@@ -5,11 +5,13 @@
  */
 import type { Track } from './data';
 import type { SongQuality } from './server/netEase';
-import { fetchSongUrl } from './api';
+import { fetchSongUrlWithInfo } from './api';
 
 interface CachedUrl {
   url: string;
   expires: number;
+  /** 版权标记：0/8 免费，1/4 VIP（仅试听） */
+  fee: number;
 }
 
 const cache = new Map<number, CachedUrl>();
@@ -20,19 +22,32 @@ export function isOnlineTrack(track: Track): boolean {
   return typeof track.neteaseId === 'number';
 }
 
-/** 解析一首歌的实际播放地址（本地歌直接返回本地路径） */
-export async function resolveTrackSrc(track: Track, level: SongQuality = 'standard'): Promise<string> {
-  if (!track.neteaseId) return track.audio;
+/** 带完整信息（含版权 fee）解析播放地址；缓存命中时 fee 取缓存值 */
+export async function resolveTrackSrcWithInfo(
+  track: Track,
+  level: SongQuality = 'standard'
+): Promise<{ url: string; fee: number }> {
+  if (!track.neteaseId) return { url: track.audio, fee: track.fee ?? 0 };
 
   const id = track.neteaseId;
   const hit = cache.get(id);
-  if (hit && Date.now() < hit.expires) return hit.url;
+  if (hit && Date.now() < hit.expires) return { url: hit.url, fee: hit.fee };
 
-  const result = await fetchSongUrl(id, level);
-  if (!result?.url) throw new Error('该歌曲暂无可用播放源');
+  const result = await fetchSongUrlWithInfo(id, level);
+  if (!result?.url) throw new Error(failHint(result?.fee ?? track.fee));
 
-  cache.set(id, { url: result.url, expires: Date.now() + URL_TTL_MS });
-  return result.url;
+  cache.set(id, { url: result.url, expires: Date.now() + URL_TTL_MS, fee: result.fee });
+  return { url: result.url, fee: result.fee };
+}
+
+export async function resolveTrackSrc(track: Track, level: SongQuality = 'standard'): Promise<string> {
+  return (await resolveTrackSrcWithInfo(track, level)).url;
+}
+
+/** 解析失败的提示语：区分 VIP / 版权下架 / 网络异常 */
+export function failHint(fee?: number): string {
+  if (fee === 1 || fee === 4) return '该歌曲为 VIP 专属，需要网易云音乐 VIP 账号登录';
+  return '该歌曲暂无可用播放源（可能因版权下架）';
 }
 
 /** 失效某首歌的播放地址缓存（播放失败/中途过期时调用，下次解析重新请求） */

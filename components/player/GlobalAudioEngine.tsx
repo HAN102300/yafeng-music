@@ -18,8 +18,12 @@ import { useMusicStore } from '@/lib/store';
 import { audioEngine } from '@/lib/audio/engine';
 import { subscribeFrame } from '@/lib/audio/frameScheduler';
 import { calculateTheme, applyThemeToDOM } from '@/lib/themeEngine';
-import { resolveTrackSrc, invalidateTrack, prefetchTrack, clearUrlCache } from '@/lib/onlineSource';
+import { resolveTrackSrcWithInfo, invalidateTrack, prefetchTrack, clearUrlCache } from '@/lib/onlineSource';
+import { getNetworkStatus } from '@/hooks/useNetworkStatus';
 import { toast } from '@/lib/toast';
+
+/** 停滞判定阈值：waiting/stalled 后超过此时长仍无缓冲进展即判卡死 */
+const STALL_TIMEOUT_MS = 5000;
 
 export default function GlobalAudioEngine() {
   const currentSong = useMusicStore((s) => s.currentSong);
@@ -38,6 +42,16 @@ export default function GlobalAudioEngine() {
   const retryingIdRef = useRef<number | null>(null);
   // 连续失败计数：整条队列都不可播时停下来，而不是无限跳曲
   const failStreakRef = useRef(0);
+  // 停滞检测：waiting/stalled 后超过阈值仍无进展 → 判定卡死自动跳曲
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** 清除停滞计时器（切歌 / 恢复缓冲 / 暂停时调用） */
+  const clearStallTimer = () => {
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+  };
 
   // 尝试播放（建立分析链 + 恢复上下文）
   const tryPlay = () => {
@@ -49,6 +63,11 @@ export default function GlobalAudioEngine() {
       console.error('[GlobalAudioEngine] ensureContext 失败:', err);
     }
     audioEngine.resume();
+    // Web Audio 分析链接入后高倍速可能破音：超安全区先临时回落 1x
+    if (!audioEngine.isRateSafe(audio.playbackRate)) {
+      audio.playbackRate = 1;
+      toast('当前倍速与音频输出模式不兼容，已临时回落为 1.0x', 'info');
+    }
     audio.play().catch((err) => {
       console.log('播放失败:', err);
     });
@@ -69,16 +88,40 @@ export default function GlobalAudioEngine() {
     return failStreakRef.current >= Math.max(playlist.length, 5);
   };
 
+  /** 停滞监视：超时仍未缓冲出声音 → 自动跳过（音频损坏/链接失效兜底） */
+  const startStallTimer = (title: string) => {
+    clearStallTimer();
+    stallTimerRef.current = setTimeout(() => {
+      stallTimerRef.current = null;
+      const state = useMusicStore.getState();
+      // 用户已暂停：不再自动跳
+      if (!state.isPlaying) return;
+      if (shouldStopSkipping()) {
+        state.pause();
+        toast('歌曲加载超时，已停止播放（网络异常或歌曲不可用）', 'error');
+        return;
+      }
+      skipNext(`《${title}》加载超时，已自动切换下一首`);
+    }, STALL_TIMEOUT_MS);
+  };
+
   // 歌曲切换 / 音质切换：解析播放源（本地 / 在线）并加载
   useEffect(() => {
     const audio = audioEngine.getAudio();
     if (!audio || !currentSong) return;
     let cancelled = false;
 
+    // 断网时拦截切歌：恢复联网后由用户手动继续
+    if (!getNetworkStatus().online) {
+      toast('当前已断开网络，无法切换歌曲', 'error');
+      useMusicStore.getState().pause();
+      return;
+    }
+
     (async () => {
       try {
         const quality = useMusicStore.getState().quality;
-        const src = await resolveTrackSrc(currentSong, quality);
+        const { url: src, fee } = await resolveTrackSrcWithInfo(currentSong, quality);
         if (cancelled || !audio) return;
 
         const loadKey = `${currentSong.id}:${srcEpoch}`;
@@ -87,10 +130,15 @@ export default function GlobalAudioEngine() {
         loadedKeyRef.current = loadKey;
         retryingIdRef.current = null;
         failStreakRef.current = 0;
+        clearStallTimer();
         audio.src = src;
         audio.playbackRate = useMusicStore.getState().playbackRate;
         audio.load();
-        if (isPlayingRef.current) tryPlay();
+        if (isPlayingRef.current) {
+          tryPlay();
+          // 加载监视：超时未就绪自动跳曲（VIP 高音质无权限时上游可能给空流）
+          if (fee === 1 || fee === 4) startStallTimer(currentSong.title);
+        }
 
         // 记录播放历史（最近在听）
         useMusicStore.getState().recordPlay(currentSong);
@@ -105,11 +153,12 @@ export default function GlobalAudioEngine() {
         console.error('[GlobalAudioEngine] 播放源解析失败:', err);
         if (shouldStopSkipping()) {
           useMusicStore.getState().pause();
-          toast('当前队列没有可播放的歌曲（VIP/版权限制或网络异常）', 'error');
+          toast('当前队列没有可播放的歌曲，已停止播放', 'error');
           return;
         }
+        // err.message 由 failHint 生成：区分「VIP 专属」「版权下架」
         skipNext(
-          `《${currentSong.title}》暂无可用播放源（可能为 VIP 歌曲），已切下一首`
+          `《${currentSong.title}》${err instanceof Error ? err.message : '暂无可用播放源'}，已切下一首`
         );
       }
     })();
@@ -156,15 +205,22 @@ export default function GlobalAudioEngine() {
     if (!audio) return;
 
     const handleError = async () => {
+      clearStallTimer();
       const song = useMusicStore.getState().currentSong;
       if (!song) return;
+      // 断网触发的加载错误：暂停等待恢复，不消耗跳曲次数
+      if (!getNetworkStatus().online) {
+        useMusicStore.getState().pause();
+        toast('网络已断开，播放已暂停', 'error');
+        return;
+      }
 
       // 首次失败：失效缓存 → 重新解析 → 尽量恢复播放进度
       if (retryingIdRef.current !== song.id) {
         retryingIdRef.current = song.id;
         if (song.neteaseId) invalidateTrack(song.neteaseId);
         try {
-          const src = await resolveTrackSrc(song, useMusicStore.getState().quality);
+          const src = (await resolveTrackSrcWithInfo(song, useMusicStore.getState().quality)).url;
           const fresh = audioEngine.getAudio();
           if (!fresh) return;
           const resumeAt = fresh.currentTime > 3 ? fresh.currentTime : 0;
@@ -188,7 +244,7 @@ export default function GlobalAudioEngine() {
 
       if (shouldStopSkipping()) {
         useMusicStore.getState().pause();
-        toast('当前队列没有可播放的歌曲（VIP/版权限制或网络异常）', 'error');
+        toast('当前队列没有可播放的歌曲，已停止播放', 'error');
         retryingIdRef.current = null;
         return;
       }
@@ -199,6 +255,30 @@ export default function GlobalAudioEngine() {
 
     audio.addEventListener('error', handleError);
     return () => audio.removeEventListener('error', handleError);
+  }, []);
+
+  // ===== 停滞检测：缓冲停滞超时未恢复 → 自动跳过 =====
+  useEffect(() => {
+    const audio = audioEngine.getAudio();
+    if (!audio) return;
+
+    const onStalled = () =>
+      startStallTimer(useMusicStore.getState().currentSong?.title ?? '当前歌曲');
+    const onProgress = () => clearStallTimer();
+    audio.addEventListener('waiting', onStalled);
+    audio.addEventListener('stalled', onStalled);
+    audio.addEventListener('canplay', onProgress);
+    audio.addEventListener('playing', onProgress);
+    audio.addEventListener('pause', onProgress);
+    return () => {
+      audio.removeEventListener('waiting', onStalled);
+      audio.removeEventListener('stalled', onStalled);
+      audio.removeEventListener('canplay', onProgress);
+      audio.removeEventListener('playing', onProgress);
+      audio.removeEventListener('pause', onProgress);
+      clearStallTimer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载时绑定一次
   }, []);
 
   // ended → 单曲循环重播 / 自动下一首（next 从 store 快照取，避免依赖闭包）

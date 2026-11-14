@@ -3,6 +3,7 @@ import './globals.css';
 import Navbar from '@/components/ui/Navbar';
 import PlayerBar from '@/components/ui/PlayerBar';
 import GlobalAudioEngine from '@/components/player/GlobalAudioEngine';
+import { MobileAudioUnlock } from '@/components/player/MobileAudioUnlock';
 import { GlobalVisualizerBackground } from '@/components/visualizer/GlobalVisualizerBackground';
 import SmoothScroll from '@/components/animations/SmoothScroll';
 import Toast from '@/components/ui/Toast';
@@ -40,6 +41,9 @@ export default function RootLayout({
 
         {/* 全局音频引擎（无头，唯一音源） */}
         <GlobalAudioEngine />
+
+        {/* iOS Safari 自动播放解锁（首次手势零噪音 load） */}
+        <MobileAudioUnlock />
 
         {/* 丝滑滚动 */}
         <SmoothScroll />
