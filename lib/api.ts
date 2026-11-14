@@ -51,6 +51,10 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     throw new ApiError('网络连接失败或请求超时，请稍后重试', 'network');
   }
   if (!res.ok) {
+    // 502/503/504 = 服务端调上游失败：断网（本机回环仍可达）或上游风控，给网络语义而非误导的「服务异常」
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new ApiError('网络连接异常（服务端暂时无法访问上游），请检查网络后重试', 'network');
+    }
     throw new ApiError(`服务异常（${res.status}），请稍后重试`, 'server');
   }
   return (await res.json()) as T;

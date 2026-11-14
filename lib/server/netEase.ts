@@ -345,6 +345,21 @@ async function weapiPost<T>(
   return (await res.json()) as T;
 }
 
+/**
+ * 明文 GET 通道（可带登录态）。
+ * 2026-11 起网易对 weapi 加密通道全面收紧（登录态+完整设备指纹仍静默空 body），
+ * 明文 /api/ 通道实测稳定可用——需登录的接口一律优先走此通道。
+ */
+async function apiGet<T>(path: string, musicU?: string | null): Promise<T | null> {
+  await ensureAnonymousDevice();
+  const res = await upstreamFetch(`https://music.163.com${path}`, {
+    headers: authHeaders(musicU),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as T;
+}
+
 // ---------- 榜单 ----------
 
 /** 全部官方榜单（飙升/新歌/热歌/原创…）。预览曲目可能为空，详情走歌单详情接口 */
@@ -785,9 +800,9 @@ export async function getAccountNetEase(musicU?: string | null): Promise<{
   nickname: string;
   avatarUrl: string;
 } | null> {
-  const json = await weapiPost<{
+  const json = await apiGet<{
     profile?: { userId?: number; nickname?: string; avatarUrl?: string };
-  }>('/weapi/nuser/account/get', { csrf_token: '' }, musicU);
+  }>('/api/nuser/account/get', musicU);
   const p = json?.profile;
   if (!p?.userId) return null;
   return {
@@ -797,32 +812,39 @@ export async function getAccountNetEase(musicU?: string | null): Promise<{
   };
 }
 
-/** 每日推荐歌曲（需登录） */
+/** 每日推荐歌曲（需登录；明文通道，weapi 已被风控静默拒） */
 export async function getDailyRecommendNetEase(musicU?: string | null): Promise<NetEaseSong[]> {
-  const json = await weapiPost<{ data?: { dailySongs?: RawSongV3[] } }>(
-    '/weapi/v3/discovery/recommend/songs',
-    { limit: 30, csrf_token: '' },
+  const json = await apiGet<{ data?: { dailySongs?: RawSongV3[] } }>(
+    '/api/v3/discovery/recommend/songs?limit=30',
     musicU
   );
   return (json?.data?.dailySongs ?? []).map(mapSongV3);
 }
 
-/** 私人 FM（需登录） */
+/** RawSearchSong（artists/album 旧结构）→ NetEaseSong */
+function mapSearchSong(s: RawSearchSong): NetEaseSong {
+  return {
+    id: s.id,
+    name: s.name ?? '',
+    artists: (s.artists ?? []).map((a) => a.name).join(' / '),
+    album: s.album?.name ?? '',
+    cover: toHttps(
+      s.album?.picUrl || s.album?.blurPicUrl || s.album?.artist?.img1v1Url || '/images/播放.png'
+    ),
+    duration: s.duration ?? 0,
+    fee: s.fee ?? 0,
+  };
+}
+
+/** 私人 FM（需登录；明文通道。data[i] 即歌曲对象，无 mainSong 包裹） */
 export async function getPersonalFMNetEase(musicU?: string | null): Promise<NetEaseSong[]> {
-  const json = await weapiPost<{
-    data?: { mainSong?: RawSongV3; sideSongs?: RawSongV3[] }[];
-  }>('/weapi/v1/radio/get', { csrf_token: '' }, musicU);
-  // mainSong + sideSongs 一起入列（官方 FM 一次返回 1 主歌 + 2 伴唱）：
-  // 只取 mainSong 会造成单曲队列，「播完切下一首」永远切到自己的死循环
-  const seen = new Set<number>();
-  return (json?.data ?? [])
-    .flatMap((d) => [d.mainSong, ...(d.sideSongs ?? [])])
-    .filter((s): s is NonNullable<typeof s> => {
-      if (!s || seen.has(s.id)) return false;
-      seen.add(s.id);
-      return true;
-    })
-    .map(mapSongV3);
+  const json = await apiGet<{ data?: RawSearchSong[] }>(
+    '/api/v1/radio/get?limit=3',
+    musicU
+  );
+  // 明文通道一次返回 3 首独立歌曲——天然多曲队列
+  // （weapi 时代的 mainSong 包裹结构已不存在）
+  return (json?.data ?? []).map(mapSearchSong);
 }
 
 /** 用户自己的歌单（需登录） */

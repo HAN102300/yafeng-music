@@ -184,13 +184,13 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeSwitcher />
 
-            <Link href="/settings" className="hidden md:flex p-2 rounded-xl hover:bg-white/10 transition-colors text-white/60 hover:text-white" title="设置">
+            <Link href="/settings" className="min-[900px]:flex hidden p-2 rounded-xl hover:bg-white/10 transition-colors text-white/60 hover:text-white" title="设置">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.065-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       </Link>
-      <Link href="/likes" className="hidden md:flex">
+      <Link href="/likes" className="min-[900px]:flex hidden">
               <motion.div
                 className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
                 whileHover={{ scale: 1.05 }}
@@ -279,9 +279,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* 移动端菜单按钮 */}
+            {/* 移动端菜单按钮（<900px 显示，与桌面导航断点互补） */}
             <motion.button
-              className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="min-[900px]:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -297,9 +297,9 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* 移动端菜单 */}
+        {/* 移动端菜单（<900px，与汉堡按钮同断点） */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-2 mx-4 p-4 glass-panel">
+          <div className="min-[900px]:hidden mt-2 mx-4 p-4 glass-panel">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
