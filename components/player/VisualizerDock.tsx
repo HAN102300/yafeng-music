@@ -58,7 +58,7 @@ export function VisualizerDock({ onActivity, hasSong }: VisualizerDockProps) {
 
   return (
     <div
-      className="viz-dock w-full max-w-xl rounded-3xl border border-white/10 backdrop-blur-2xl viz-dock-pad"
+      className="viz-dock w-full max-w-2xl rounded-3xl border border-white/10 backdrop-blur-2xl viz-dock-pad"
       style={{
         background: 'color-mix(in srgb, var(--color-dark-base) 72%, transparent)',
         boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
@@ -160,87 +160,69 @@ export function VisualizerDock({ onActivity, hasSong }: VisualizerDockProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </motion.button>
-      </div>
+      
+          {/* 分隔线 */}
+          <div className="w-px h-8 bg-white/10 mx-1" />
 
-      {/* 副功能行：队列 / 音量 / 歌词 */}
-      <div className="flex items-center justify-between viz-subrow mt-2.5">
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={touching(() => setQueueOpen(true))}
-          className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
-          title={('播放队列（' + playlistCount + ' 首）')}
-        >
-          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10m4-1v6m3-3h-6" />
-          </svg>
-          {playlistCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gradient-primary text-[9px] leading-4 text-white font-semibold text-center">
-              {playlistCount > 99 ? '99+' : playlistCount}
-            </span>
-          )}
-        </motion.button>
-
-        {/* 音量：悬停展开滑条 */}
-        <div
-          className="flex items-center gap-2"
-          onMouseEnter={() => { setVolHover(true); onActivity(); }}
-          onMouseLeave={() => setVolHover(false)}
-        >
-          <button
-            className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
-            title={volume === 0 ? '取消静音' : '静音'}
-            onClick={touching(() => setVolume(volume === 0 ? 0.7 : 0))}
+          {/* 播放队列 */}
+          <motion.button
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={touching(() => setQueueOpen(true))}
+            className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+            title={'播放队列（' + playlistCount + ' 首）'}
           >
-            {volume === 0 ? (
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16.5 12L14 9.5v5L16.5 12zM19 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-              </svg>
-            ) : (
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-              </svg>
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10m4-1v6m3-3h-6" />
+            </svg>
+            {playlistCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gradient-primary text-[9px] leading-4 text-white font-semibold text-center">
+                {playlistCount > 99 ? '99+' : playlistCount}
+              </span>
             )}
-          </button>
+          </motion.button>
+
+          {/* 音量（悬停展开滑条） */}
           <div
-            ref={volumeRef}
-            onPointerDown={(e) => { onActivity(); startVolume(e); }}
-            className={('h-1 rounded-full bg-white/20 cursor-pointer transition-all duration-200 ') + (volHover ? 'w-24 opacity-100' : 'w-0 opacity-0')}
+            className="flex items-center gap-2"
+            onMouseEnter={() => { setVolHover(true); onActivity(); }}
+            onMouseLeave={() => setVolHover(false)}
           >
+            <button
+              className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+              title={volume === 0 ? '取消静音' : '静音'}
+              onClick={touching(() => setVolume(volume === 0 ? 0.7 : 0))}
+            >
+              {volume === 0 ? (
+                <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M16.5 12L14 9.5v5L16.5 12zM19 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                </svg>
+              ) : (
+                <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                </svg>
+              )}
+            </button>
             <div
-              className="h-full rounded-full relative"
-              style={{
-                width: volume * 100 + '%',
-                background: 'linear-gradient(90deg, rgba(var(--cover-color, 168,85,247), 0.7), rgba(var(--cover-color, 168,85,247), 1))',
-              }}
-            />
+              ref={volumeRef}
+              onPointerDown={(e) => { onActivity(); startVolume(e); }}
+              className={'h-1 rounded-full bg-white/20 cursor-pointer transition-all duration-200 ' + (volHover ? 'w-20 opacity-100' : 'w-0 opacity-0')}
+            >
+              <div
+                className="h-full rounded-full relative"
+                style={{
+                  width: volume * 100 + '%',
+                  background: 'linear-gradient(90deg, rgba(var(--cover-color, 168,85,247), 0.7), rgba(var(--cover-color, 168,85,247), 1))',
+                }}
+              />
+            </div>
+            <span className={'text-[10px] text-white/35 tabular-nums transition-opacity ' + (volHover ? 'opacity-100' : 'opacity-0')}>
+              {Math.round(volume * 100)}
+            </span>
           </div>
-          <span className={('text-[10px] text-white/35 tabular-nums transition-opacity ') + (volHover ? 'opacity-100' : 'opacity-0')}>
-            {Math.round(volume * 100)}
-          </span>
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={touching(() => setLyricsOpen(true))}
-          disabled={!hasSong}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white disabled:opacity-30"
-          title="全屏歌词"
-        >
-          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4m4 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </motion.button>
       </div>
-
-      {/* 队列抽屉 / 歌词浮层（复用全局组件） */}
-      <AnimatePresence>
-        {queueOpen && <QueueDrawer onClose={() => setQueueOpen(false)} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {lyricsOpen && <LyricsOverlay onClose={() => setLyricsOpen(false)} />}
-      </AnimatePresence>
     </div>
+
+
   );
 }

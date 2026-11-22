@@ -5,6 +5,7 @@
  * 当前行放大发光、自动居中滚动、点击行 seek。
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { useMusicStore } from '@/lib/store';
 import { useLyrics } from '@/hooks/useLyrics';
@@ -17,6 +18,8 @@ interface LyricsOverlayProps {
 }
 
 export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   useBodyScrollLock(true);
   const currentSong = useMusicStore((s) => s.currentSong);
   const seekTo = useMusicStore((s) => s.seekTo);
@@ -67,7 +70,9 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
 
   if (!currentSong) return null;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0, y: 24, scale: 0.98, x: '-50%' }}
       animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
@@ -137,6 +142,7 @@ export function LyricsOverlay({ onClose }: LyricsOverlayProps) {
           })
         )}
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

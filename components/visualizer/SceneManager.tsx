@@ -23,7 +23,9 @@ export function SceneManager({ sceneId, coverUrl, quality = 'auto' }: SceneManag
   // auto 档：帧率探针实时降级（high/low 由用户固定）
   const fpsDegraded = useFpsGuard({ enabled: quality === 'auto' });
   const effectiveLow = quality === 'low' || (quality === 'auto' && fpsDegraded);
-  const degraded = effectiveLow && scene.quality === 'heavy';
+  // 省电判定：heavy 场景一律降级；light 场景（Canvas 2D）省电档同样替换为静态氛围，
+  // 保证「省电」档位有全场景可见的明确效果
+  const degraded = effectiveLow;
 
   return (
     <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">

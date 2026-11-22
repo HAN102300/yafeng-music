@@ -2,8 +2,12 @@
 
 /**
  * 播放队列抽屉：当前队列列表（点击切歌 / 移除单曲 / 清空队列）
+ * Portal 挂 body：脱离调用方的 transform 定位上下文（framer-motion 容器
+ * 内的 fixed 元素会被 transform 困住导致偏移）。
  */
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { motion } from 'framer-motion';
 import { LazyList } from '@/components/ui/LazyList';
@@ -15,6 +19,9 @@ interface QueueDrawerProps {
 }
 
 export function QueueDrawer({ onClose }: QueueDrawerProps) {
+  // Portal 需要 DOM 就绪（SSR 安全）
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   // 弹层期间锁定背景页面滚动，避免滚轮穿透
   useBodyScrollLock(true);
   const playlist = useMusicStore((s) => s.playlist);
@@ -25,7 +32,9 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
   const clearQueue = useMusicStore((s) => s.clearQueue);
   const togglePlay = useMusicStore((s) => s.togglePlay);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* 遮罩 */}
       <motion.div
@@ -143,6 +152,7 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
           )}
         </div>
       </motion.div>
-    </>
+    </>,
+    document.body
   );
 }
