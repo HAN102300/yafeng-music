@@ -221,8 +221,11 @@ export function VisualizerDock({ onActivity, hasSong }: VisualizerDockProps) {
             </span>
           </div>
       </div>
+
+      {/* 播放队列抽屉（Portal 挂 body） */}
+      <AnimatePresence>
+        {queueOpen && <QueueDrawer onClose={() => setQueueOpen(false)} />}
+      </AnimatePresence>
     </div>
-
-
   );
 }
