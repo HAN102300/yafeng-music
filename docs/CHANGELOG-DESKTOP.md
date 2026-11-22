@@ -9,6 +9,29 @@
 
 ---
 
+## [v0.1.5] 2026-11-22
+
+### ✨ 可视化页控制舱升级
+- 新组件 VisualizerDock：控制舱功能与主播放条对齐——播放队列（QueueDrawer 复用）/ 音量滑条（悬停展开）/ 主控分组一行布局（分隔线隔开主控与功能区）
+- 控制舱 clamp 弹性自适应：播放键/图标/间距/进度条随视口高度缩放
+- 无歌时播放键走 yafeng:viz-playpause 事件，自动开播热歌榜
+
+### ⚡ 可视化质量档
+- useFpsGuard 帧率探针：连续 5 秒 <30fps 自动降级（一次性防震荡，切后台暂停统计）
+- useVisualizerQuality 用户档位 auto/high/low（desktopStorage 持久化）
+- 设置页外观区新增「可视化质量」选择；省电档全场景生效（light 场景同样替换静态氛围）
+
+### 📜 性能与内存
+- LazyList 分片懒加载组件（IntersectionObserver，每批 50 首，提前 600px 预加载）——TrackList 全站 + QueueDrawer 接入
+- apiFetch 准静态 GET 缓存（榜单/目录/热门类 5 分钟，LRU 60，登录态不缓存）
+- onlineSource 播放地址缓存 LRU 上限 40
+- 事件监听审计：GlobalAudioEngine / frameScheduler 全部配对清理
+
+### 🐛 修复
+- QueueDrawer / LyricsOverlay 改 createPortal 挂 body：脱离 framer-motion 容器 transform 定位上下文（fixed 偏移根因）
+- 控制舱合并布局时误删 QueueDrawer 渲染调用（点击无反应）——三连修复后实测通过
+- 省电档对 light 场景无效（原实现只降级 WebGL heavy 场景）
+
 ## [v0.1.4] 2026-11-15,,### ✨ 新增,- 设置页「关于」新增【检查更新】按钮：完整状态机（检查中/最新/发现新版/下载进度/就绪重启/失败）+ 动画；手动检查忽略「跳过此版本」偏好,- 测试钩子：localStorage.setItem('yafeng:update-sim','1') 触发更新流程模拟（不真实下载安装）,- 诊断钩子：window.__MUSIC_STORE__ / __AUDIO_ENGINE__（控制台可查播放状态）,,### 🔐 通道迁移（重大）,- 实测确认：weapi 加密通道已被网易全面收紧（登录态+完整设备指纹仍静默空 body）,- 需登录接口全部迁移明文 /api/ 通道（新增 apiGet helper）：账号信息 / 每日推荐 / 私人FM / 用户歌单,- 私人 FM 明文结构 data[i] 即歌曲（一次 3 首独立歌曲，无 mainSong 包裹），补 mapSearchSong 映射,,### 🐛 修复,- 私人 FM 播完不切歌死循环（单曲队列 next() 选中自身时引擎不重载；store 新增 restart 分支 + FM 明文通道天然 3 曲队列）,- 应用退出后 node sidecar 驻留后台：Windows Job Object（KILL_ON_JOB_CLOSE）兜底 + 退出路径显式 kill,- 匿名设备身份持久化（TAURI_DATA_DIR/anonymous-device.json）：跨重启复用指纹，8821 风控概率大幅下降（实测扫码登录恢复）,- Navbar 断点盲区：768–900px 导航彻底消失；统一断点 900px + 设置齿轮全宽度常驻 + 移动菜单补设置入口,- 搜索页「清空历史」桌面端不生效（误用 localStorage，改 desktopStorage）,- 断网误报「服务异常(502)」：apiFetch 断网快筛 + 502/503/504 归类网络文案,,### 🛡️ Web D 部分稳定性 10 项（Web + 桌面同步）,- 断网检测与播放降级（断网禁切歌、离线横幅）,- iOS Safari 首手势解锁音频（audio.load 零噪音解锁）,- 播放停滞 5s 自动跳曲（队列耗尽则停止提示）,- 版权/VIP 失败原因细分提示（song-url 404 透传上游 fee）,- 倍速与 Web Audio 分析链兼容钳制（超安全区回落 1x）,- 进度/音量拖拽 rAF 帧对齐（同帧事件合并）,- song-url CORS 与缓存头（与 20 分钟 URL 有效期对齐）,- Cookie 登录 5 步指引、8821 风控提示优化,,### 📝 工程记录（G5.2/G5.3）,- A/B 归因实验方法论：git archive 快照 + 诊断钩子 + CDP 注入对照（单曲队列 bug 判定为历史漏洞非 D 引入）,- junction 实验清空 node_modules 事故与恢复：npm 脚本需 ComSpec 环境变量；禁止 junction+rm 组合,- GitHub 直连间歇阻断时 git config http.version=HTTP/1.1 可恢复推送,
 ## [v0.1.3] 2026-11-11
 
