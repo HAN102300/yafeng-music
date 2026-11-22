@@ -743,3 +743,32 @@ input {
   .ring-wrap { transform: scale(0.5); }
   .viz-lyrics { height: 72px !important; }
 }
+
+/* ===== 可视化控制舱：整舱随视口高度弹性缩放（窗口放大缩小不呆板） ===== */
+/* 舱内边距：高窗饱满 / 矮窗紧凑 */
+.viz-dock-pad {
+  padding: clamp(8px, 1.6vh, 14px) clamp(18px, 3vw, 26px) clamp(10px, 1.8vh, 16px);
+}
+/* 进度条粗细弹性 */
+.viz-progress { height: clamp(4px, 0.7vh, 7px); }
+/* 控制键行间距弹性 */
+.viz-dock-gap { gap: clamp(12px, 2.4vh, 22px); }
+/* 副功能行间距弹性 */
+.viz-subrow { gap: clamp(8px, 1.5vh, 14px); }
+/* 前后切歌按钮 padding 弹性 */
+.viz-btn-md { padding: clamp(8px, 1.4vh, 13px); }
+/* 模式/喜欢小按钮 padding 弹性 */
+.viz-btn-sm { padding: clamp(5px, 1vh, 9px); }
+/* 切歌图标尺寸弹性 */
+.viz-ico-md { width: clamp(20px, 2.8vh, 26px); height: clamp(20px, 2.8vh, 26px); }
+/* 播放主键尺寸弹性（核心：整舱高度的主要决定因素） */
+.viz-play-btn {
+  width: clamp(48px, 9vh, 64px);
+  height: clamp(48px, 9vh, 64px);
+}
+.viz-ico-play { width: clamp(24px, 4.2vh, 30px); height: clamp(24px, 4.2vh, 30px); }
+/* 舱体宽度窄窗收紧 */
+@media (max-width: 640px) {
+  .viz-dock-pad { padding-left: 14px; padding-right: 14px; }
+  .viz-dock-gap { gap: 10px; }
+}

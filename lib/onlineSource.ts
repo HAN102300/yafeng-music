@@ -17,6 +17,8 @@ interface CachedUrl {
 const cache = new Map<number, CachedUrl>();
 // 网易云 url 有效期约 1200s，留 100s 余量提前刷新
 const URL_TTL_MS = 1100 * 1000;
+// LRU 上限：长会话挂机防止 Map 无限增长（超出先淘汰最旧条目）
+const CACHE_MAX = 40;
 
 export function isOnlineTrack(track: Track): boolean {
   return typeof track.neteaseId === 'number';
@@ -36,6 +38,11 @@ export async function resolveTrackSrcWithInfo(
   const result = await fetchSongUrlWithInfo(id, level);
   if (!result?.url) throw new Error(failHint(result?.fee ?? track.fee));
 
+  // LRU：超上限先淘汰最旧（Map 迭代序即插入序）
+  if (cache.size >= CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
   cache.set(id, { url: result.url, expires: Date.now() + URL_TTL_MS, fee: result.fee });
   return { url: result.url, fee: result.fee };
 }

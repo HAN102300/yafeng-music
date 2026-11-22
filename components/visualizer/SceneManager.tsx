@@ -4,22 +4,26 @@
  * SceneManager - 全屏背景场景挂载
  * 强制同屏最多 1 个全屏 WebGL context：
  * AnimatePresence mode="wait" 保证旧场景先卸载（WebGL context 释放）再挂载新场景。
- * low 质量档下 heavy 场景替换为静态渐变。
+ * low 质量档下 heavy 场景替换为静态渐变；auto 档由 FPS 探针实时判定。
  * 中央可视化由沉浸页自行绘制，不在此层。
  */
 import { AnimatePresence, motion } from 'framer-motion';
 import { getScene } from '@/lib/visualizer/registry';
-import type { QualityTier } from '@/hooks/useQualityTier';
+import { useFpsGuard } from '@/hooks/useFpsGuard';
+import type { VisualizerQuality } from '@/hooks/useVisualizerQuality';
 
 interface SceneManagerProps {
   sceneId: string;
   coverUrl?: string;
-  quality?: QualityTier;
+  quality?: VisualizerQuality;
 }
 
-export function SceneManager({ sceneId, coverUrl, quality = 'high' }: SceneManagerProps) {
+export function SceneManager({ sceneId, coverUrl, quality = 'auto' }: SceneManagerProps) {
   const scene = getScene(sceneId);
-  const degraded = quality === 'low' && scene.quality === 'heavy';
+  // auto 档：帧率探针实时降级（high/low 由用户固定）
+  const fpsDegraded = useFpsGuard({ enabled: quality === 'auto' });
+  const effectiveLow = quality === 'low' || (quality === 'auto' && fpsDegraded);
+  const degraded = effectiveLow && scene.quality === 'heavy';
 
   return (
     <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">

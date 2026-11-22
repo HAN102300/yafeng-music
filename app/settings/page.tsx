@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useNcmProfile } from '@/lib/ncmAuth';
 import { desktopStorage } from '@/lib/desktopStorage';
 import { CheckUpdateButton } from '@/components/updater/CheckUpdateButton';
+import { useVisualizerQuality, type VisualizerQuality } from '@/hooks/useVisualizerQuality';
 
 type ClosingBehavior = 'tray' | 'exit';
 
@@ -57,6 +58,7 @@ export default function SettingsPage() {
   const playbackRate = useMusicStore((s) => s.playbackRate);
   const setPlaybackRate = useMusicStore((s) => s.setPlaybackRate);
   const themeId = useMusicStore((s) => s.themeId);
+  const { quality: vizQuality, setQuality: setVizQuality } = useVisualizerQuality();
   const likedCount = useMusicStore((s) => s.likedTracks.length);
   const historyCount = useMusicStore((s) => s.history.length);
   const clearHistory = useMusicStore((s) => s.clearHistory);
@@ -142,6 +144,17 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 text-sm text-white/50">
           <span>使用导航栏的调色盘按钮实时切换主题，选择会自动保存并全局应用。</span>
         </div>
+        <p className="text-xs text-white/40 mt-4 mb-2">可视化质量</p>
+        <div className="flex flex-wrap gap-2">
+          {([
+            ['auto', '自动（卡顿自动降级）'],
+            ['high', '高（完整特效）'],
+            ['low', '省电（静态背景）'],
+          ] as [VisualizerQuality, string][]).map(([q, label]) => (
+            <OptionRow key={q} label={label} active={vizQuality === q} onClick={() => setVizQuality(q)} />
+          ))}
+        </div>
+        <p className="text-xs text-white/30 mt-2">控制可视化页背景特效强度；「自动」会在检测到持续掉帧时自动降级。</p>
       </Section>
 
       {/* 桌面专属 */}

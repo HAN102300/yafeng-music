@@ -6,6 +6,7 @@
 import Image from 'next/image';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { motion } from 'framer-motion';
+import { LazyList } from '@/components/ui/LazyList';
 import { useMusicStore } from '@/lib/store';
 import { formatDuration } from '@/lib/format';
 
@@ -85,57 +86,60 @@ export function QueueDrawer({ onClose }: QueueDrawerProps) {
           {playlist.length === 0 ? (
             <div className="text-center py-20 text-white/30 text-sm">队列是空的</div>
           ) : (
-            playlist.map((track, i) => {
+                      <LazyList
+            items={playlist}
+            renderItem={(track, i) => {
               const isCurrent = currentSong?.id === track.id;
               return (
-                <motion.div
-                  key={`${track.id}-${i}`}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(i * 0.02, 0.4) }}
-                  onClick={() => (isCurrent ? togglePlay() : play(track))}
-                  className={`group flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors ${
-                    isCurrent ? 'bg-white/10' : 'hover:bg-white/5'
-                  }`}
-                >
-                  <span className="w-6 text-center text-xs text-white/30 tabular-nums flex-shrink-0">
-                    {isCurrent && isPlaying ? (
-                      <span className="inline-flex items-end gap-0.5 h-3">
-                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '60%' }} />
-                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                        <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
-                      </span>
-                    ) : (
-                      i + 1
-                    )}
-                  </span>
-                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative bg-white/5">
-                    <Image src={track.cover} alt={track.title} width={40} height={40} className="object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm truncate ${isCurrent ? 'text-acc font-medium' : 'text-white'}`}>
-                      {track.title}
-                    </p>
-                    <p className="text-xs text-white/40 truncate">{track.artist}</p>
-                  </div>
-                  <span className="text-xs text-white/30 tabular-nums hidden sm:block">
-                    {formatDuration(track.duration ?? 0)}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFromQueue(track.id);
-                    }}
-                    className="p-1.5 rounded-full text-white/25 hover:text-red-300 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                    title="从队列移除"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </motion.div>
-              );
-            })
+            <motion.div
+                                key={`${track.id}-${i}`}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: Math.min(i * 0.02, 0.4) }}
+                                onClick={() => (isCurrent ? togglePlay() : play(track))}
+                                className={`group flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors ${
+                                  isCurrent ? 'bg-white/10' : 'hover:bg-white/5'
+                                }`}
+                              >
+                                <span className="w-6 text-center text-xs text-white/30 tabular-nums flex-shrink-0">
+                                  {isCurrent && isPlaying ? (
+                                    <span className="inline-flex items-end gap-0.5 h-3">
+                                      <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '60%' }} />
+                                      <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                                      <span className="w-0.5 bg-acc rounded-full animate-pulse" style={{ height: '45%', animationDelay: '0.3s' }} />
+                                    </span>
+                                  ) : (
+                                    i + 1
+                                  )}
+                                </span>
+                                <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative bg-white/5">
+                                  <Image src={track.cover} alt={track.title} width={40} height={40} className="object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm truncate ${isCurrent ? 'text-acc font-medium' : 'text-white'}`}>
+                                    {track.title}
+                                  </p>
+                                  <p className="text-xs text-white/40 truncate">{track.artist}</p>
+                                </div>
+                                <span className="text-xs text-white/30 tabular-nums hidden sm:block">
+                                  {formatDuration(track.duration ?? 0)}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeFromQueue(track.id);
+                                  }}
+                                  className="p-1.5 rounded-full text-white/25 hover:text-red-300 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                  title="从队列移除"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </motion.div>
+                            );
+            }}
+          />
           )}
         </div>
       </motion.div>

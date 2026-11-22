@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useMusicStore } from '@/lib/store';
-import { useQualityTier } from '@/hooks/useQualityTier';
+import { useVisualizerQuality } from '@/hooks/useVisualizerQuality';
 import { getScene } from '@/lib/visualizer/registry';
 import { SceneManager } from '@/components/visualizer/SceneManager';
 import { extractDominantColor } from '@/lib/coverColor';
@@ -21,7 +21,7 @@ import { extractDominantColor } from '@/lib/coverColor';
 export function GlobalVisualizerBackground() {
   const currentSong = useMusicStore((s) => s.currentSong);
   const sceneId = useMusicStore((s) => s.visualizerSceneId);
-  const quality = useQualityTier();
+  const { quality } = useVisualizerQuality();
   const pathname = usePathname();
 
   const [coverRgb, setCoverRgb] = useState<string | null>(null);

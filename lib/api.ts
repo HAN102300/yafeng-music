@@ -19,6 +19,52 @@ import type { Track } from '@/lib/data';
 
 const REQUEST_TIMEOUT_MS = 10000;
 
+/**
+ * 准静态 GET 内存缓存（SWR 风格，5 分钟）。
+ * 仅用于低频变更的榜单/目录/热门列表类请求——搜索/登录/FM 等不缓存。
+ * 登录态请求（x-ncm-music-u）不缓存，避免串号。
+ */
+const GET_CACHE_TTL_MS = 5 * 60 * 1000;
+const GET_CACHE_MAX = 60;
+const getCache = new Map<string, { data: unknown; expires: number }>();
+
+function cacheGet(key: string): unknown | null {
+  const hit = getCache.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) {
+    getCache.delete(key);
+    return null;
+  }
+  return hit.data;
+}
+
+function cacheSet(key: string, data: unknown): void {
+  // 简易 LRU：超上限先删最旧
+  if (getCache.size >= GET_CACHE_MAX) {
+    const oldest = getCache.keys().next().value;
+    if (oldest !== undefined) getCache.delete(oldest);
+  }
+  getCache.set(key, { data, expires: Date.now() + GET_CACHE_TTL_MS });
+}
+
+/** 需要缓存的路径前缀（准静态内容） */
+const CACHEABLE_PREFIXES = [
+  '/api/toplist',
+  '/api/playlist-catalogue',
+  '/api/playlist-hot',
+  '/api/playlist?', // 榜单/歌单详情（内容按 id 缓存）
+  '/api/artist-hot',
+  '/api/personalized',
+  '/api/newsong',
+  '/api/search-hot',
+];
+
+function isCacheable(url: string, hasAuth: boolean): boolean {
+  if (hasAuth) return false;
+  const path = url.split('?')[0] + (url.includes('?') ? '?' : '');
+  return CACHEABLE_PREFIXES.some((p) => (p.endsWith('?') ? url.startsWith(p) : path === p));
+}
+
 /** API 调用错误：kind 区分网络故障与上游服务异常（UI 可给出不同文案） */
 export class ApiError extends Error {
   constructor(
@@ -40,6 +86,13 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const musicU = typeof window !== 'undefined' ? localStorage.getItem('yafeng-ncm-music-u') : null;
   if (musicU) headers.set('x-ncm-music-u', musicU);
 
+  // GET 缓存：准静态内容（无登录态）直接命中
+  const method = (init?.method ?? 'GET').toUpperCase();
+  if (method === 'GET' && isCacheable(url, !!musicU)) {
+    const hit = cacheGet(url);
+    if (hit !== null) return hit as T;
+  }
+
   let res: Response;
   try {
     res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
@@ -57,7 +110,11 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(`服务异常（${res.status}），请稍后重试`, 'server');
   }
-  return (await res.json()) as T;
+  const json = (await res.json()) as T;
+  if (method === 'GET' && isCacheable(url, !!musicU)) {
+    cacheSet(url, json);
+  }
+  return json;
 }
 
 // ---------- 基础映射 ----------

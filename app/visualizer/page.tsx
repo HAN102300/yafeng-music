@@ -16,20 +16,18 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusicStore } from '@/lib/store';
 import { useAudioFrame } from '@/hooks/useAudioFrame';
-import { useAudioProgress } from '@/hooks/useAudioProgress';
-import { useDragPercent } from '@/hooks/useDragPercent';
-import { useQualityTier } from '@/hooks/useQualityTier';
+import { useVisualizerQuality } from '@/hooks/useVisualizerQuality';
 import { SCENES } from '@/lib/visualizer/registry';
 import { SceneManager } from '@/components/visualizer/SceneManager';
 import { CircularVisualizer } from '@/components/visualizer/CircularVisualizer';
 import { LyricsScroller } from '@/components/player/LyricsScroller';
+import { VisualizerDock } from '@/components/player/VisualizerDock';
 import { fetchHotChartTracks } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { formatTime } from '@/lib/format';
 
 export default function VisualizerPage() {
   const router = useRouter();
-  const quality = useQualityTier();
+  const { quality } = useVisualizerQuality();
 
   const currentSong = useMusicStore((s) => s.currentSong);
   const isPlaying = useMusicStore((s) => s.isPlaying);
@@ -46,11 +44,6 @@ export default function VisualizerPage() {
 
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // 高频进度：本地 state
-  const { currentTime, duration, seekTo } = useAudioProgress();
-  const progressDrag = useDragPercent((pct) => seekTo(pct * duration));
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // BPM（2s 节流入 state）与节拍脉冲（直接操作 DOM，0 重渲染）
   const [bpm, setBpm] = useState(0);
@@ -91,12 +84,23 @@ export default function VisualizerPage() {
     };
   }, []);
 
+  // 无歌时 Dock 播放键触发：自动开播热歌榜
+  useEffect(() => {
+    const onPlayPause = () => {
+      if (currentSong) togglePlay();
+      else void handlePlayPause();
+    };
+    document.addEventListener('yafeng:viz-playpause', onPlayPause);
+    return () => document.removeEventListener('yafeng:viz-playpause', onPlayPause);
+  });
+
   const handlePlayPause = async () => {
     if (!currentSong) {
       try {
         const tracks = await fetchHotChartTracks(30);
         if (tracks.length === 0) throw new Error('empty');
         playQueueFrom(tracks, 0);
+        toast('已为你播放热歌榜 🎵', 'success');
       } catch {
         toast('在线曲库暂不可用，请稍后重试或先搜索歌曲', 'error');
       }
@@ -110,10 +114,7 @@ export default function VisualizerPage() {
     setScene(SCENES[(idx + 1) % SCENES.length].id);
   };
 
-  const currentModeLabel =
-    playMode === 'single' ? '单曲循环' : playMode === 'random' ? '随机播放' : '列表循环';
 
-  const { containerRef: progressContainerRef, isDragging: isProgressDragging } = progressDrag;
 
   return (
     <div
@@ -240,110 +241,9 @@ export default function VisualizerPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 36 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
-            className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-[max(20px,env(safe-area-inset-bottom,0px))] flex justify-center viz-dock"
+            className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-[max(20px,env(safe-area-inset-bottom,0px))] flex justify-center"
           >
-            <div
-              className="w-full max-w-xl rounded-3xl border border-white/10 backdrop-blur-2xl px-6 pt-3 pb-3.5"
-              style={{
-                background: 'color-mix(in srgb, var(--color-dark-base) 72%, transparent)',
-                boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
-              }}
-            >
-              {/* 进度 */}
-              <div
-                ref={progressContainerRef}
-                className="w-full h-1.5 bg-white/10 rounded-full cursor-pointer relative group select-none touch-none"
-                onPointerDown={progressDrag.start}
-              >
-                <div
-                  className="h-full rounded-full relative"
-                  style={{
-                    width: `${isProgressDragging ? progressDrag.percent * 100 : progressPercent}%`,
-                    background:
-                      'linear-gradient(90deg, var(--color-primary, #a855f7), var(--color-accent, #06b6d4))',
-                    boxShadow: '0 0 12px color-mix(in srgb, var(--color-primary) 55%, transparent)',
-                  }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-              <div className="flex justify-between text-xs text-white/40 mt-1.5 tabular-nums">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-
-              {/* 控制键 */}
-              <div className="flex items-center justify-center gap-5 mt-2">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setPlayMode(playMode === 'loop' ? 'single' : playMode === 'single' ? 'random' : 'loop')}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white text-lg"
-                  title={currentModeLabel}
-                >
-                  {playMode === 'single' ? '🔂' : playMode === 'random' ? '🔀' : '🔁'}
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={prev}
-                  className="p-3 rounded-full hover:bg-white/10 transition-colors"
-                  title="上一首"
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
-                  </svg>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.92 }}
-                  onClick={handlePlayPause}
-                  className="w-16 h-16 shrink-0 rounded-full flex items-center justify-center transition-all"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, var(--color-primary, #a855f7), var(--color-accent, #06b6d4))',
-                    boxShadow: '0 0 34px color-mix(in srgb, var(--color-primary) 45%, transparent)',
-                  }}
-                  title={isPlaying ? '暂停' : '播放'}
-                >
-                  {isPlaying ? (
-                    <svg className="w-7 h-7 text-white on-accent" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-7 h-7 text-white on-accent ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  )}
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={next}
-                  className="p-3 rounded-full hover:bg-white/10 transition-colors"
-                  title="下一首"
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
-                  </svg>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => currentSong && toggleLike(currentSong)}
-                  className={`p-2 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-400' : 'text-white/50 hover:text-white'}`}
-                  title={liked ? '取消喜欢' : '喜欢'}
-                >
-                  <svg className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </motion.button>
-              </div>
-            </div>
+            <VisualizerDock onActivity={handleMouseMove} hasSong={!!currentSong} />
           </motion.div>
         )}
       </AnimatePresence>
